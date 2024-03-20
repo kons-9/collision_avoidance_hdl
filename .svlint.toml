@@ -1,0 +1,21 @@
+[syntaxrules]
+keyword_forbidden_wire_reg = true
+keyword_forbidden_logic = false
+blocking_assignment_in_always_ff = true
+case_default = true
+default_nettype_none = false # TODO
+enum_with_type = true
+eventlist_comma_always_ff = true
+eventlist_or = false
+explicit_case_default = false
+explicit_if_else = false
+function_same_as_system_function = true
+function_with_automatic = false # TODO
+general_always_level_sensitive = false
+general_always_no_edge = true
+genvar_declaration_in_loop = true
+genvar_declaration_out_loop = false
+inout_with_tri = false
+# つづき
+# https://github.com/dalance/svlint/blob/master/MANUAL.md#syntax-rule-input_with_var
+
