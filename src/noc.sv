@@ -1,0 +1,2 @@
+module noc();
+endmodule
