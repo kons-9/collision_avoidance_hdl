@@ -1,5 +1,11 @@
 package types;
 
+  typedef enum logic [3:0] {
+    INITIALIZING,
+    NORMAL,
+    ERROR
+  } noc_state_t;
+
   typedef enum logic [31:0] {
     NO_ERROR = 0,
     RX_BUFFER_OVERFLOW = 1 << 0,
@@ -59,22 +65,6 @@ package types;
     // チェックサムが大きいのは衝突が頻繁に起こるため
     checksum_t checksum;  // 16 bits
   } flit_t;
-
-  // packet
-
-  typedef struct packed {
-    logic [7:0]  version;
-    logic [7:0]  headlength;    // fixed 20
-    logic [7:0]  p_priority;    // packet priority, now ignore
-    logic [15:0] packetid;
-    logic [15:0] src;
-    logic [15:0] dst;
-    logic [7:0]  flag;
-    logic [7:0]  fragment;
-    logic [15:0] headchecksum;
-    logic [7:0]  protocol;
-    logic [15:0] option;
-  } packet_header_t;  // 16 * 8 = 128 bits
 
   parameter logic [2:0] UART_DATA_IND_MAX = 7;
   typedef logic [UART_DATA_IND_MAX:0] uart_data_t;

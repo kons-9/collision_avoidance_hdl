@@ -41,15 +41,15 @@ module noc (
   // 1. make flit
   // flitは４分割されてやってくる。
   // そのためデータを結合してflitを作る
-  logic tmp_flit[127:0];
-  logic [1:0] position;
+  logic [127:0] tmp_flit;
+  logic [  1:0] position;
 
   always_ff @(posedge nocclk or negedge rst_n) begin
     if (!rst_n) begin
       position <= 0;
     end else begin
       if (data_in_vld) begin
-        tmp_flit[position*32] <= data_in;
+        tmp_flit[position*32+:32] <= data_in;
         position <= position + 1;
       end
     end
@@ -62,20 +62,20 @@ module noc (
   logic send_flit_valid;
   types::flit_t send_flit;
 
-  always_ff @(posedge nocclk or negedge rst_n) begin
+  always_comb begin
     if (!rst_n) begin
-      send_flit_checksum_error <= 0;
-      send_flit_valid <= 0;
+      send_flit_checksum_error = 0;
+      send_flit_valid = 0;
     end else begin
       if (position == 3) begin
         // calculate checksum
         // TODO チェックサムを計算する
-        send_flit <= tmp_flit;
-        send_flit_checksum_error <= 0;
-        send_flit_valid <= 1;
+        send_flit = tmp_flit;
+        send_flit_checksum_error = 0;
+        send_flit_valid = 1;
       end else begin
-        send_flit_checksum_error <= 0;
-        send_flit_valid <= 0;
+        send_flit_checksum_error = 0;
+        send_flit_valid = 0;
       end
     end
   end
@@ -106,31 +106,21 @@ module noc (
   // -------------------------
   // 1. receive flit
   // uartを通じてflitを受信する
-  flit_t receive_flit;
-  logic  receive_flit_valid;
-  always_ff @(posedge nocclk or negedge rst_n) begin
-    if (!rst_n) begin
-      receive_flit <= 0;
-      receive_flit_valid <= 0;
-    end else begin
-      // TODO: uartからflitを受信する
-      receive_flit <= 0;
-      receive_flit_valid <= 1;
-    end
-  end
+  flit_t uart_rx_flit;
+  logic  uart_rx_valid;
 
   // -------------------------
   // 2. calculate checksum
   // チェックサムを計算する
-  logic receive_flit_checksum_error;
-  logic receive_flit_checksum_valid;
+  logic  receive_flit_checksum_error;
+  logic  receive_flit_checksum_valid;
   always_comb begin
     if (!rst_n) begin
       receive_flit_checksum_error = 0;
       receive_flit_checksum_valid = 0;
     end else begin
       // TODO: チェックサムを計算する
-      if (receive_flit_valid) begin
+      if (uart_rx_valid) begin
         receive_flit_checksum_error = 0;
         receive_flit_checksum_valid = 1;
       end else begin
@@ -201,7 +191,7 @@ module noc (
   end
 
   //////////////////////////////
-  // routing & uart
+  // routing
   //////////////////////////////
 
   // -------------------------
@@ -209,33 +199,37 @@ module noc (
   // flitをバッファから取り出す
   // 現在は単純に先頭のflitを取り出す
 
-  flit_t uart_flit;
-  logic  uart_flit_valid;
+  flit_t uart_tx_flit;
+  logic  uart_tx_flit_valid;
+  logic  uart_tx_rdy;
   always_ff @(posedge nocclk or negedge rst_n) begin
     if (!rst_n) begin
-      uart_flit_valid <= 0;
+      uart_tx_flit_valid <= 0;
       ack_flit_tail <= 0;
       forward_flit_tail <= 0;
       send_buffer_tail <= 0;
-    end else begin
+    end else if (uart_tx_rdy) begin
+      // Lockを使いたくなかったので、すべてを別々に定義している
+      // ack_flit, forward_flit, send_bufferの順に取り出す
       if (ack_flit_tail != ack_flit_head) begin
-        uart_flit <= ack_flit_buffer[ack_flit_tail];
+        uart_tx_flit <= ack_flit_buffer[ack_flit_tail];
         ack_flit_tail <= ack_flit_tail + 1;
-        uart_flit_valid <= 1;
+        uart_tx_flit_valid <= 1;
       end else if (forward_flit_tail != forward_flit_head) begin
-        uart_flit <= forward_flit_buffer[forward_flit_tail];
+        uart_tx_flit <= forward_flit_buffer[forward_flit_tail];
         forward_flit_tail <= forward_flit_tail + 1;
-        uart_flit_valid <= 1;
+        uart_tx_flit_valid <= 1;
       end else if (send_buffer_tail != send_buffer_head) begin
-        uart_flit <= send_buffer[send_buffer_tail];
+        uart_tx_flit <= send_buffer[send_buffer_tail];
         send_buffer_tail <= send_buffer_tail + 1;
-        uart_flit_valid <= 1;
+        uart_tx_flit_valid <= 1;
       end else begin
-        uart_flit_valid <= 0;
+        uart_tx_flit_valid <= 0;
       end
+    end else begin
+        // wait for uart_tx_rdy
     end
   end
-
 
   // -------------------------
   // 2. calculate routing
@@ -254,22 +248,39 @@ module noc (
   // チェックサムを計算する
   // NOTE: 以前のチェックサムはroutingがない状態で計算されているため、再計算が必要。
   types::checksum_t uart_checksum;
-  always_comb begin
-      // TODO: チェックサムを計算する
-      uart_checksum = 0;
-  end
 
-  // -------------------------
-  // 4. send flit by uart
-  // flitをuartを通じて送信する
-  always_ff @(posedge nocclk or negedge rst_n) begin
-    if (!rst_n) begin
-      uart_tx <= 0;
-    end else begin
-      if (uart_flit_valid) begin
-          // TODO: uartにflitを送信する
-      end
-    end
-  end
+  calculate_checksum checksum (
+      .flit(uart_tx_flit),
+      .checksum(uart_checksum)
+  );
+
+  //////////////////////////////
+  // uart
+  //////////////////////////////
+  logic uart_clk;
+
+  uart_clk uart_clk1 (
+      .clk(cpuclk),
+      .rst_n(rst_n),
+      .uart_clk_out(uart_clk)
+  );
+
+  uart_rx uart_rx1 (
+      .uart_clk(uart_clk),
+      .rst_n(rst_n),
+      .uart_rx(uart_rx),
+
+      .flit_out(uart_rx_flit),
+      .flit_out_vld(uart_tx_flit_valid)
+  );
+
+  uart_tx uart_tx1 (
+      .uart_clk(uart_clk),
+      .rst_n(rst_n),
+      .flit_in_vld(uart_tx_flit_valid),
+      .flit_in(uart_tx_flit),
+
+      .flit_in_rdy(uart_tx_rdy)
+  );
 
 endmodule
