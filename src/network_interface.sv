@@ -1,6 +1,6 @@
 // ホストからデータをmessage_bufferを通じて受取る。
 // message_bufferはパケットの配列である
-module network_interface #(parameter FLIT_WIDTH=32)
+module network_interface
 (
     input wire clk,
     input wire rst_n,
