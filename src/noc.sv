@@ -29,6 +29,10 @@ module noc (
 
     // for conficuration
 );
+
+  types::node_id_t this_node_id;
+  types::noc_state_t noc_state;
+
   // TODO: LOCKをどうするか。
   // バッファ挿入に関して、receive bufferとsend bufferが同じ場合、コンフリクトが発生する。
   // 今回は簡単のため、bufferを共有しないようにする。
@@ -41,16 +45,18 @@ module noc (
   // 1. make flit
   // flitは４分割されてやってくる。
   // そのためデータを結合してflitを作る
-  logic [127:0] tmp_flit;
-  logic [  1:0] position;
+  logic [127:0] raw_send_flit;
+  logic [1:0] send_position;
+  logic raw_send_flit_completed;
 
-  always_ff @(posedge nocclk or negedge rst_n) begin
+  always_ff @(posedge cpuclk or negedge rst_n) begin
     if (!rst_n) begin
-      position <= 0;
+      send_position <= 0;
     end else begin
       if (data_in_vld) begin
-        tmp_flit[position*32+:32] <= data_in;
-        position <= position + 1;
+        raw_send_flit[send_position*32+:32] <= data_in;
+        send_position <= send_position + 1;
+        raw_send_flit_completed <= (send_position == 3);
       end
     end
   end
@@ -58,46 +64,33 @@ module noc (
   // -------------------------
   // 2. calculate checksum
   // 整合性が何らかの影響で失われた場合、signalにエラーを出力する
-  logic send_flit_checksum_error;
+  types::flit_t send_flit = raw_send_flit;
+  types::checksum_t send_flit_checksum;
   logic send_flit_valid;
-  types::flit_t send_flit;
 
-  always_comb begin
-    if (!rst_n) begin
-      send_flit_checksum_error = 0;
-      send_flit_valid = 0;
-    end else begin
-      if (position == 3) begin
-        // calculate checksum
-        // TODO チェックサムを計算する
-        send_flit = tmp_flit;
-        send_flit_checksum_error = 0;
-        send_flit_valid = 1;
-      end else begin
-        send_flit_checksum_error = 0;
-        send_flit_valid = 0;
-      end
-    end
-  end
+  calculate_checksum_comb check_checksum1 (
+      .flit(send_flit),
+      .checksum(send_flit_checksum),
+      .is_valid(send_flit_valid)
+  );
 
   // -------------------------
   // 2. put flit into buffer
   // flitをバッファに入れる
-  flit_t send_buffer[8];
-  logic [2:0] send_buffer_head;
-  logic [2:0] send_buffer_tail;
+  types::flit_buffer_t send_buffer;
+  types::buffer_state_t send_buffer_state;
+  types::flit_t send_buffer_flit;
 
-  always_ff @(posedge nocclk or negedge rst_n) begin
-    if (!rst_n) begin
-      send_buffer_head <= 0;
-    end else begin
-      if (send_flit_valid) begin
-        // TODO: バッファがfullの場合、エラーを出力する
-        send_buffer[send_buffer_head] <= send_flit;
-        send_buffer_head <= send_buffer_head + 1;
-      end
-    end
-  end
+  flit_buffer send_buffer (
+      .clk(nocclk),
+      .rst_n(rst_n),
+      .buffer(send_buffer),
+      .insert_flit(send_flit),
+      .insert_flit_valid(send_flit_valid & raw_send_flit_completed),
+
+      .next_flit (send_buffer_flit),
+      .next_state(send_buffer_state)
+  );
 
   //////////////////////////////
   // receive flit
@@ -106,92 +99,82 @@ module noc (
   // -------------------------
   // 1. receive flit
   // uartを通じてflitを受信する
-  flit_t uart_rx_flit;
-  logic  uart_rx_valid;
+  types::flit_t uart_rx_flit;
+  logic uart_rx_valid;
 
   // -------------------------
   // 2. calculate checksum
   // チェックサムを計算する
-  logic  receive_flit_checksum_error;
-  logic  receive_flit_checksum_valid;
-  always_comb begin
-    if (!rst_n) begin
-      receive_flit_checksum_error = 0;
-      receive_flit_checksum_valid = 0;
-    end else begin
-      // TODO: チェックサムを計算する
-      if (uart_rx_valid) begin
-        receive_flit_checksum_error = 0;
-        receive_flit_checksum_valid = 1;
-      end else begin
-        receive_flit_checksum_error = 0;
-        receive_flit_checksum_valid = 0;
-      end
-    end
-  end
+  logic uart_rx_checksum;
+  logic uart_rx_checksum_valid;
+
+  check_checksum_comb check_checksum2 (
+      .flit(uart_rx_flit),
+      .checksum(uart_rx_checksum),
+      .is_valid(uart_rx_checksum_valid)
+  );
+
+  // -------------------------
+  // 3. make control signal
+  // 受信したデータのヘッダーを見て、適切な信号処理を行う
+  // 自分への宛先でない場合、flitを破棄する
+  logic is_ack;
+  logic is_self;
+  control_received_flit control_received_flit1 ();
 
   // -------------------------
   // 3. make ack flit
   // receive flitがackではない場合、ack flitを作る
-  flit_t ack_flit;
-  logic  ack_flit_valid;
-  always_comb begin
-    // TODO: ack flitを作る
-    ack_flit = 0;
-    ack_flit_valid = 0;
-  end
+  types::flit_t ack_flit;
+  logic ack_flit_valid;
+  make_ack_comb make_ack_comb1 (
+      .flit_in(uart_rx_flit),
+      .flit_in_vld(is_ack),
+      .flit_out(ack_flit),
+      .flit_out_vld(ack_flit_valid)
+  );
 
   // -------------------------
   // 4. put ack flit into buffer
   // ack flitをバッファに入れる
   // ack flitは受信したflitに対して返す
-  flit_t ack_flit_buffer[8];
-  logic [2:0] ack_flit_head;
-  logic [2:0] ack_flit_tail;
-  always_ff @(posedge nocclk or negedge rst_n) begin
-    if (!rst_n) begin
-      ack_flit_head <= 0;
-    end else begin
-      if (receive_flit_checksum_valid & ack_flit_valid) begin
-        // TODO: バッファがfullの場合、エラーを出力する
-        ack_flit_buffer[ack_flit_head] <= ack_flit;
-        ack_flit_head <= ack_flit_head + 1;
-      end
-    end
-  end
-  // -------------------------
-  // 4. make flit
-  // 自分への宛先でない場合、flitを作成する
-  flit_t forward_flit;
-  logic  forward_flit_valid;
 
-  always_comb begin
-    // TODO: 自分への宛先かどうかを判定する
-    forward_flit = 0;
-    forward_flit_valid = 0;
-  end
+  types::flit_buffer_t ack_flit_buffer;
+  types::flit_t ack_flit_buffer_state;
+  types::buffer_state_t ack_flit_buffer_state;
+
+  flit_buffer ack_flit_buffer (
+      .clk(nocclk),
+      .rst_n(rst_n),
+      .buffer(ack_flit_buffer),
+      .insert_flit(ack_flit),
+      .insert_flit_valid(ack_flit_valid),
+
+      .next_flit (ack_flit_buffer_state),
+      .next_state(ack_flit_buffer_state)
+  );
 
   // -------------------------
-  // 4. put flit into buffer
-  // forward_flit_validな場合、flitをバッファに入れる
-  flit_t forward_flit_buffer[8];
-  logic [2:0] forward_flit_head;
-  logic [2:0] forward_flit_tail;
+  // 5. send data_out
+  // 自身の宛先の場合、データを保持する
+  types::flit_buffer_t receive_buffer;
+  types::flit_t receive_buffer_flit;
+  types::buffer_state_t receive_buffer_state;
 
-  always_ff @(posedge nocclk or negedge rst_n) begin
-    if (!rst_n) begin
-      forward_flit_head <= 0;
-    end else begin
-      if (receive_flit_checksum_valid && !forward_flit_valid) begin
-        // TODO: バッファがfullの場合、エラーを出力する
-        forward_flit_buffer[forward_flit_head] <= forward_flit;
-        forward_flit_head <= forward_flit_head + 1;
-      end
-    end
-  end
+  flit_buffer receive_buffer (
+      .clk(nocclk),
+      .rst_n(rst_n),
+      .buffer(receive_buffer),
+      .insert_flit(receive_flit),
+      .insert_flit_valid(receive_flit_valid),
+      .is_pop(data_out_rdy),
+
+      .next_flit (receive_buffer_flit),
+      .next_state(receive_buffer_state)
+  );
 
   //////////////////////////////
-  // routing
+  // send & routing
   //////////////////////////////
 
   // -------------------------
@@ -199,60 +182,58 @@ module noc (
   // flitをバッファから取り出す
   // 現在は単純に先頭のflitを取り出す
 
-  flit_t uart_tx_flit;
-  logic  uart_tx_flit_valid;
-  logic  uart_tx_rdy;
-  always_ff @(posedge nocclk or negedge rst_n) begin
-    if (!rst_n) begin
-      uart_tx_flit_valid <= 0;
-      ack_flit_tail <= 0;
-      forward_flit_tail <= 0;
-      send_buffer_tail <= 0;
-    end else if (uart_tx_rdy) begin
-      // Lockを使いたくなかったので、すべてを別々に定義している
-      // ack_flit, forward_flit, send_bufferの順に取り出す
-      if (ack_flit_tail != ack_flit_head) begin
-        uart_tx_flit <= ack_flit_buffer[ack_flit_tail];
-        ack_flit_tail <= ack_flit_tail + 1;
-        uart_tx_flit_valid <= 1;
-      end else if (forward_flit_tail != forward_flit_head) begin
-        uart_tx_flit <= forward_flit_buffer[forward_flit_tail];
-        forward_flit_tail <= forward_flit_tail + 1;
-        uart_tx_flit_valid <= 1;
-      end else if (send_buffer_tail != send_buffer_head) begin
-        uart_tx_flit <= send_buffer[send_buffer_tail];
-        send_buffer_tail <= send_buffer_tail + 1;
-        uart_tx_flit_valid <= 1;
-      end else begin
-        uart_tx_flit_valid <= 0;
-      end
-    end else begin
-        // wait for uart_tx_rdy
-    end
-  end
+  types::flit_t poped_uart_tx_flit;
+  logic uart_tx_flit_valid;
+  logic uart_tx_rdy;
+  pop_flit pop_flit1 ();
 
   // -------------------------
   // 2. calculate routing
   // ルーティングを計算する
   // グローバルな宛先から次のノードを決定する
-  logic [15:0] next_node;
-  logic [15:0] routing_table[16];
-  logic [15:0] global_destination;
+  types::flit_t uart_tx_flit_without_checksum;
+  types::node_id_t global_destination;
+  logic is_destination_self;
 
-  always_comb begin
-    next_node = routing_table[global_destination];
-  end
+  router router1 (
+      .global_destination(global_destination),
+      .flit_in(poped_uart_tx_flit),
+
+      .flit_out(uart_tx_flit_without_checksum),
+      .is_global_destination_self(is_destination_self)
+  );
 
   // -------------------------
   // 3. calculate checksum
   // チェックサムを計算する
   // NOTE: 以前のチェックサムはroutingがない状態で計算されているため、再計算が必要。
-  types::checksum_t uart_checksum;
+  types::flit_t uart_tx_flit;
 
-  calculate_checksum checksum (
-      .flit(uart_tx_flit),
-      .checksum(uart_checksum)
+  calculate_checksum_comb checksum (
+      .flit(uart_tx_flit_without_checksum),
+      .flit_out(uart_tx_flit)
   );
+
+  // -------------------------
+  // 4. data out
+  // is_destination_selfが立っている場合、データを出力する
+
+  logic [127:0] raw_receive_flit;
+  logic [1:0] receive_position;
+  logic raw_receive_flit_completed;
+
+  always_ff @(posedge cpuclk or negedge rst_n) begin
+    if (!rst_n) begin
+      receive_position <= 0;
+    end else begin
+      if (data_out_rdy) begin
+        data_out <= raw_receive_flit[receive_position*32+:32];
+        receive_position <= receive_position + 1;
+        raw_receive_flit_completed <= (receive_position == 3);
+      end
+    end
+  end
+
 
   //////////////////////////////
   // uart
@@ -278,7 +259,7 @@ module noc (
       .uart_clk(uart_clk),
       .rst_n(rst_n),
       .flit_in_vld(uart_tx_flit_valid),
-      .flit_in(uart_tx_flit),
+      .flit_in(uart_tx_flit_without_next_node),
 
       .flit_in_rdy(uart_tx_rdy)
   );
