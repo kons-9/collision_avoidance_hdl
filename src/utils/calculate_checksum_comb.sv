@@ -1,3 +1,4 @@
+`include "types.svh"
 module calculate_checksum_comb (
     input types::flit_t flit_in,
     output types::checksum_t checksum,

@@ -1,3 +1,5 @@
+`ifndef TYPES_SVH
+`define TYPES_SVH
 package types;
   //////////////////////////////////////////////////////////////////////
   // uart clk definition
@@ -132,3 +134,4 @@ package types;
     buffer_state_t state;
   } flit_buffer_t;
 endpackage
+`endif
