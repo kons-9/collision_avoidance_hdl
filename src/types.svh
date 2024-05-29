@@ -19,18 +19,18 @@ package types;
   } noc_state_t;
 
   typedef enum logic [1:0] {
-    IDLE,
-    START_BIT,
-    DATA,
-    END_BIT
+    TX_IDLE,
+    TX_START_BIT,
+    TX_DATA,
+    TX_END_BIT
   } uart_tx_state_t;
 
   typedef enum logic [1:0] {
-    IDLE,
-    NOT_RECEIVING,
-    DATA,
-    END_BIT
-  } uart_tx_state_t;
+    RX_IDLE,
+    RX_NOT_RECEIVING,
+    RX_DATA,
+    RX_END_BIT
+  } uart_rx_state_t;
 
   //////////////////////////////////////////////////////////////////////
   // signal definition
@@ -41,7 +41,7 @@ package types;
     TX_NOT_REACHABLE = 1 << 1,
 
     // fatal error
-    GENERAL_FATAL_ERROR = 1 << 32
+    GENERAL_FATAL_ERROR = 1 << 31
   } signal_t;
 
 
@@ -63,24 +63,26 @@ package types;
   } flit_id_t;
   typedef struct packed {
     logic [3:0] version;   // 4 bits
+    flit_type_t flittype;  // 4 bits
     node_id_t   src_id;    // 8 bits
     node_id_t   dst_id;    // 8 bits
     flit_id_t   flit_id;   // 16 bits
-    flit_type_t flittype;  // 4 bits
   } flit_header_t;
+  // flit_header_t == 40
 
   // flit payload 72 bits
-  typedef enum logic [15:0] {
-    ACK = 0,
-    NORMAL = 1
+  typedef enum logic [11:0] {
+    H_ACK = 0,
+    H_NORMAL = 1
   } message_header_t;
   typedef struct packed {
     node_id_t global_src_id;  // 8 bits
     node_id_t global_dst_id;  // 8 bits
-    logic [15:0] length;  // 16 bits
-    message_header_t header;  // 16 bits
+    logic [7:0] length;  // 8 bits
     logic [7:0] vc;  // 8 bits
-    logic [15:0] options;  // 16 bits
+    message_header_t header;  // 12 bits
+    logic [3:0] option_flag;  // 4 bits
+    logic [23:0] options;  // 24 bits
   } head_t;
   typedef struct packed {
     logic [71:0] data;  // 72 bits
@@ -126,7 +128,7 @@ package types;
   typedef struct packed {
     logic [$clog2(NUM_ENTRIES)-1:0] head_index;
     logic [$clog2(NUM_ENTRIES)-1:0] tail_index;
-    flit_t flit_buffer[NUM_ENTRIES];
+    flit_t [NUM_ENTRIES-1:0] flit_buffer;
     buffer_state_t state;
   } flit_buffer_t;
 endpackage

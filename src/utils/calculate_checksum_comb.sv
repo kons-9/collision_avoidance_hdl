@@ -1,12 +1,12 @@
-`include "types.sv"
 module calculate_checksum_comb (
-    input types::flit_t flit,
+    input types::flit_t flit_in,
     output types::checksum_t checksum,
     output logic is_valid,
     output types::flit_t flit_out
 );
 
-  types::checksum_t flit_checksum = flit.checksum;
+  types::checksum_t flit_checksum;
+  assign flit_checksum = flit_in.checksum;
 
   // TODO
   always_comb begin
@@ -14,10 +14,10 @@ module calculate_checksum_comb (
     checksum = 0;
   end
 
-  assign is_valid = flit_checksum == checksum;
+  assign is_valid = flit_checksum === checksum;
   assign flit_out = {
-    flit.header,
-    flit.payload,
+    flit_in.header,
+    flit_in.payload,
     checksum
   };
 endmodule

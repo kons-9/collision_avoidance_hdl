@@ -5,9 +5,17 @@ module noc (
     input  logic rst_n,
     // nocとの通信を行うためのクロック
     input  logic nocclk,
+`ifdef UART
     // uartの入力と出力
     input  logic uart_rx,
     output logic uart_tx,
+`else
+    // flitの入力と出力 for direct connection
+    input flit_t flit_rx,
+    input flit_t flit_rx_vld,
+    output flit_t flit_tx,
+    output flit_t flit_tx_rdy,
+`endif
 
     // for input
     input logic [31:0] data_in,
@@ -152,7 +160,7 @@ module noc (
 
       .next_flit (ack_flit_buffer_state),
       .next_state(ack_flit_buffer_state)
-  );
+  )
 
   // -------------------------
   // 5. send data_out
@@ -236,8 +244,9 @@ module noc (
 
 
   //////////////////////////////
-  // uart
+  // output device
   //////////////////////////////
+`ifdef UART
   logic uart_clk;
 
   uart_clk uart_clk1 (
@@ -263,5 +272,11 @@ module noc (
 
       .flit_in_rdy(uart_tx_rdy)
   );
+`else
+    assign flit_rx = uart_tx_flit;
+    assign flit_rx_vld = uart_tx_flit_valid;
+    assign flit_tx = uart_tx_flit;
+    assign flit_tx_rdy = uart_tx_rdy;
+`endif
 
 endmodule
