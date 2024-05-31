@@ -1,103 +1,138 @@
-module noc (
-    // uartのクロックを作成するためのクロック
-    input  logic cpuclk,
-    // rst_nが立った場合、全てのsendバッファをクリアする
-    input  logic rst_n,
-    // nocとの通信を行うためのクロック
-    input  logic nocclk,
-`ifdef UART
-    // uartの入力と出力
-    input  logic uart_rx,
-    output logic uart_tx,
-`else
-    // flitの入力と出力 for direct connection
-    input flit_t flit_rx,
-    input flit_t flit_rx_vld,
-    output flit_t flit_tx,
-    output flit_t flit_tx_rdy,
-`endif
+`include "types.sv"
+import types::flit_t;
 
-    // for input
+module noc (
+    // uartのクロックを作成するためのクロック(gclk)
+    input logic cpuclk,
+    // nocとの通信を行うためのクロック(sclk)
+    input logic nocclk,
+    // rst_nが立った場合、全てのsendバッファをクリアする
+    input logic rst_n,
+
+    // cpuとの通信(cpu -> noc)
+    // vld, rdy両方のフラグがnocclkの立ち上がり時に立っていた場合、データを受け取る
     input logic [31:0] data_in,
     input logic data_in_vld,
     output logic data_in_rdy,
-    // todo: add channel
 
-    // for output
+    // cpuとの通信(noc -> cpu)
+    // vld, rdy両方のフラグがnocclkの立ち上がり時に立っていた場合、データを送信する
     input logic data_out_rdy,
     output logic [31:0] data_out,
     output logic data_out_vld,
-    // todo: add channel
 
     // for error
     // errorが発生した場合、signalにエラーを出力する
+    // TODO:data_outでsystem dataとして送ることによって通知することもできるが
+    // 簡便のため現在の実装はこのようにしている
     // rst_nが立つまで、send以外の処理を行わない
     output logic signal,
-    output types::signal_t error
+    output types::signal_t error,
+
+    // 外部機器との接続用
+    // 形状自在の通信では1bitなので、uartモジュールを使うことになるが、FPGAな
+    // どの実験では128bitsそのまま送信することができる。
+`ifdef UART
+    // uartの入力と出力
+    // 通常のuartで128ビットのデータを出力する
+    input logic uart_rx,
+    output logic uart_tx,
+`else
+    // flitの入力と出力 for direct connection
+    // flit_rx_vld, flit_tx_rdy両方のフラグがnocclkの立ち上がり時に立っていた場合、データを受け取る
+    input types::flit_t flit_rx,
+    input types::flit_t flit_rx_vld,
+    output types::flit_t flit_tx,
+    output types::flit_t flit_tx_rdy,
+`endif
 
     // for conficuration
+    // TODO: configurationはsystem dataをとして通常の送信のときに行われるが
+    // 簡便のため現在の実装はこのようにしている
+    input  logic configuration,
+    output logic current_configuration
 );
 
   types::node_id_t this_node_id;
   types::noc_state_t noc_state;
 
+  types::flit_t interdevice_tx_flit;
+
+  logic interdevice_rx_rdy;
+  input types::flit_t interdevice_rx_flit;
+  logic interdevice_rx_valid;
+
   // TODO: LOCKをどうするか。
-  // バッファ挿入に関して、receive bufferとsend bufferが同じ場合、コンフリクトが発生する。
   // 今回は簡単のため、bufferを共有しないようにする。
 
   //////////////////////////////
-  // send flit
+  // cpu to noc
   //////////////////////////////
 
-  // -------------------------
-  // 1. make flit
-  // flitは４分割されてやってくる。
-  // そのためデータを結合してflitを作る
-  logic [127:0] raw_send_flit;
-  logic [1:0] send_position;
-  logic raw_send_flit_completed;
-
-  always_ff @(posedge cpuclk or negedge rst_n) begin
-    if (!rst_n) begin
-      send_position <= 0;
-    end else begin
-      if (data_in_vld) begin
-        raw_send_flit[send_position*32+:32] <= data_in;
-        send_position <= send_position + 1;
-        raw_send_flit_completed <= (send_position == 3);
-      end
-    end
-  end
-
-  // -------------------------
-  // 2. calculate checksum
-  // 整合性が何らかの影響で失われた場合、signalにエラーを出力する
-  types::flit_t send_flit = raw_send_flit;
-  types::checksum_t send_flit_checksum;
-  logic send_flit_valid;
-
-  calculate_checksum_comb check_checksum1 (
-      .flit(send_flit),
-      .checksum(send_flit_checksum),
-      .is_valid(send_flit_valid)
+  wire cpu_to_noc_pushed_flit_ready;
+  wire cpu_to_noc_pushed_flit_valid;
+  types::flit_t cpu_to_noc_pushed_flit;
+  cpu_to_noc_flitizer cpu_to_noc_flitizer1 (
+      .nocclk(nocclk),
+      .rst_n(rst_n),
+      .data_in(data_in),
+      .data_in_vld(data_in_vld),
+      .data_in_rdy(data_in_rdy),
+      .pushed_flit_ready(cpu_to_noc_pushed_flit_ready),
+      .pushed_flit(cpu_to_noc_pushed_flit),
+      .pushed_flit_valid(cpu_to_noc_pushed_flit_valid),
+      .sys_invalid_flit()
   );
 
-  // -------------------------
-  // 2. put flit into buffer
-  // flitをバッファに入れる
-  types::flit_buffer_t send_buffer;
-  types::buffer_state_t send_buffer_state;
-  types::flit_t send_buffer_flit;
+  types::flit_t cpu_to_noc_poped_flit;
+  wire cpu_to_noc_poped_flit_ready;
+  wire cpu_to_noc_poped_flit_ready;
 
-  flit_buffer send_buffer (
+  flit_queue cpu_to_noc_buffer (
       .clk(nocclk),
       .rst_n(rst_n),
-      .buffer(send_buffer),
-      .insert_flit(send_flit),
-      .insert_flit_valid(send_flit_valid & raw_send_flit_completed),
+      // push
+      .pushed_flit(cpu_to_noc_pushed_flit),
+      .pushed_flit_valid(cpu_to_noc_pushed_flit_valid),
+      .pushed_flit_ready(cpu_to_noc_pushed_flit_ready),
+      // pop
+      .poped_flit(cpu_to_noc_poped_flit),
+      .poped_flit_valid(cpu_to_noc_poped_flit_valid),
+      .poped_flit_ready(cpu_to_noc_poped_flit_ready),
+  );
 
-      .next_flit (send_buffer_flit),
-      .next_state(send_buffer_state)
+  //////////////////////////////
+  // noc to cpu
+  //////////////////////////////
+  logic noc_to_cpu_pushed_flit_ready;
+  logic noc_to_cpu_pushed_flit_valid;
+  types::flit_t noc_to_cpu_pushed_flit;
+
+  logic noc_to_cpu_poped_flit_ready;
+  logic noc_to_cpu_poped_flit_valid;
+  types::flit_t noc_to_cpu_poped_flit;
+  flit_queue noc_to_cpu_buffer (
+      .clk(nocclk),
+      .rst_n(rst_n),
+      // push
+      .pushed_flit(noc_to_cpu_pushed_flit),
+      .pushed_flit_valid(noc_to_cpu_pushed_flit_valid),
+      .pushed_flit_ready(noc_to_cpu_pushed_flit_ready),
+      // pop
+      .poped_flit(noc_to_cpu_poped_flit),
+      .poped_flit_valid(noc_to_cpu_poped_flit_valid),
+      .poped_flit_ready(noc_to_cpu_poped_flit_ready),
+  );
+
+  noc_to_cpu_deflitizer noc_to_cpu_deflitizer1 (
+      .nocclk(nocclk),
+      .rst_n(rst_n),
+      .poped_flit(noc_to_cpu_poped_flit),
+      .poped_flit_valid(noc_to_cpu_poped_flit_valid),
+      .poped_flit_ready(noc_to_cpu_poped_flit_ready),
+      .data_out_ready(data_out_rdy),
+      .data_out(data_out),
+      .data_out_valid(data_out_vld),
   );
 
   //////////////////////////////
@@ -105,178 +140,164 @@ module noc (
   //////////////////////////////
 
   // -------------------------
-  // 1. receive flit
-  // uartを通じてflitを受信する
-  types::flit_t uart_rx_flit;
-  logic uart_rx_valid;
-
-  // -------------------------
-  // 2. calculate checksum
-  // チェックサムを計算する
-  logic uart_rx_checksum;
-  logic uart_rx_checksum_valid;
-
-  check_checksum_comb check_checksum2 (
-      .flit(uart_rx_flit),
-      .checksum(uart_rx_checksum),
-      .is_valid(uart_rx_checksum_valid)
-  );
-
-  // -------------------------
-  // 3. make control signal
+  // 1. make control signal
   // 受信したデータのヘッダーを見て、適切な信号処理を行う
   // 自分への宛先でない場合、flitを破棄する
-  logic is_ack;
-  logic is_self;
-  control_received_flit control_received_flit1 ();
-
-  // -------------------------
-  // 3. make ack flit
-  // receive flitがackではない場合、ack flitを作る
-  types::flit_t ack_flit;
+  types::flit_t interdevice_rx_flit;
+  logic interdevice_rx_valid;
+  logic interdevice_rx_ready;
   logic ack_flit_valid;
-  make_ack_comb make_ack_comb1 (
-      .flit_in(uart_rx_flit),
-      .flit_in_vld(is_ack),
-      .flit_out(ack_flit),
-      .flit_out_vld(ack_flit_valid)
+  logic ack_flit_ready;
+  logic packet_buffer_ready;
+  logic packet_buffer_valid;
+  logic waiting_ack_buffer_valid;
+  receive_controller_comb(
+      .nocclk(nocclk),
+      .rst_n(rst_n),
+      .received_flit(interdevice_rx_flit),
+      .received_flit_valid(interdevice_rx_valid),
+      .received_flit_ready(interdevice_rx_ready),
+      .ack_buffer_ready(ack_flit_ready),
+      .ack_buffer_valid(ack_flit_valid),
+      .packet_buffer_ready(packet_buffer_ready),
+      .packet_buffer_valid(packet_buffer_valid),
+      .waiting_ack_buffer_valid(waiting_ack_buffer_valid),
   );
 
   // -------------------------
-  // 4. put ack flit into buffer
+  // 2. put ack flit into buffer
   // ack flitをバッファに入れる
   // ack flitは受信したflitに対して返す
+  //
+  types::flit_t ack_flit;
+  make_ack_comb make_ack_comb1 (
+      .flit_in (interdevice_rx_flit),
+      .flit_out(ack_flit),
+  );
 
-  types::flit_buffer_t ack_flit_buffer;
-  types::flit_t ack_flit_buffer_state;
-  types::buffer_state_t ack_flit_buffer_state;
-
-  flit_buffer ack_flit_buffer (
+  wire ack_poped_flit_ready;
+  types::flit_t ack_poped_flit;
+  wire ack_poped_flit_valid;
+  flit_queue ack_flit_queue (
       .clk(nocclk),
       .rst_n(rst_n),
-      .buffer(ack_flit_buffer),
-      .insert_flit(ack_flit),
-      .insert_flit_valid(ack_flit_valid),
-
-      .next_flit (ack_flit_buffer_state),
-      .next_state(ack_flit_buffer_state)
-  )
+      .pushed_flit(ack_flit),
+      .pushed_flit_valid(ack_flit_valid),
+      .pushed_flit_ready(ack_flit_ready),
+      .poped_flit_ready(ack_poped_flit_ready),
+      .poped_flit(ack_poped_flit),
+      .poped_flit_valid(ack_poped_flit_valid),
+  );
 
   // -------------------------
-  // 5. send data_out
-  // 自身の宛先の場合、データを保持する
-  types::flit_buffer_t receive_buffer;
-  types::flit_t receive_buffer_flit;
-  types::buffer_state_t receive_buffer_state;
+  // 2. packet controller
+  // パケット単位で処理を行う
+  logic forwarded_flit_ready;
+  logic forwarded_flit_valid;
+  types::flit_t forwarded_flit;
 
-  flit_buffer receive_buffer (
+  packet_controller packet_controller (
+      .nocclk(nocclk),
+      .rst_n(rst_n),
+      .flit_in(interdevice_rx_flit),
+      .flit_in_valid(packet_buffer_valid),
+      .flit_in_ready(packet_buffer_ready),
+      .noc_to_cpu_pushed_flit_ready(noc_to_cpu_pushed_flit_ready),
+      .noc_to_cpu_pushed_flit_valid(noc_to_cpu_pushed_flit_valid),
+      .noc_to_cpu_pushed_flit(noc_to_cpu_pushed_flit),
+      .forwarded_flit_ready(forwarded_flit_ready),
+      .forwarded_flit_valid(forwarded_flit_valid),
+      .forwarded_flit(forwarded_flit)
+  );
+
+  wire forwarded_poped_flit_ready;
+  wire forwarded_poped_flit_valid;
+  types::flit_t forwarded_poped_flit;
+
+  flit_queue forwarded_flit_queue (
       .clk(nocclk),
       .rst_n(rst_n),
-      .buffer(receive_buffer),
-      .insert_flit(receive_flit),
-      .insert_flit_valid(receive_flit_valid),
-      .is_pop(data_out_rdy),
-
-      .next_flit (receive_buffer_flit),
-      .next_state(receive_buffer_state)
+      .pushed_flit(forwarded_flit),
+      .pushed_flit_valid(forwarded_flit_valid),
+      .pushed_flit_ready(forwarded_flit_ready),
+      .poped_flit_ready(forwarded_poped_flit_ready),
+      .poped_flit(forwarded_poped_flit),
+      .poped_flit_valid(forwarded_poped_flit_valid),
   );
 
   //////////////////////////////
-  // send & routing
+  // waiting ack controller
   //////////////////////////////
 
-  // -------------------------
-  // 1. get flit from buffer
-  // flitをバッファから取り出す
-  // 現在は単純に先頭のflitを取り出す
-
-  types::flit_t poped_uart_tx_flit;
-  logic uart_tx_flit_valid;
-  logic uart_tx_rdy;
-  pop_flit pop_flit1 ();
-
-  // -------------------------
-  // 2. calculate routing
-  // ルーティングを計算する
-  // グローバルな宛先から次のノードを決定する
-  types::flit_t uart_tx_flit_without_checksum;
-  types::node_id_t global_destination;
-  logic is_destination_self;
-
-  router router1 (
-      .global_destination(global_destination),
-      .flit_in(poped_uart_tx_flit),
-
-      .flit_out(uart_tx_flit_without_checksum),
-      .is_global_destination_self(is_destination_self)
+  wire waiting_ack_poped_flit_ready;
+  wire waiting_ack_poped_flit_valid;
+  types::flit_t waiting_ack_poped_flit;
+  waiting_ack_controller waiting_ack_controller (
+      .nocclk(nocclk),
+      .rst_n(rst_n),
+      .waiting_ack_flit(interdevice_rx_flit),
+      .waiting_ack_flit_valid(waiting_ack_buffer_valid),
+      .poped_waiting_ack_flit_ready(waiting_ack_poped_flit_ready),
+      .poped_waiting_ack_flit(waiting_ack_poped_flit),
+      .poped_waiting_ack_flit_valid(waiting_ack_poped_flit_valid),
   );
 
-  // -------------------------
-  // 3. calculate checksum
-  // チェックサムを計算する
-  // NOTE: 以前のチェックサムはroutingがない状態で計算されているため、再計算が必要。
-  types::flit_t uart_tx_flit;
+  //////////////////////////////
+  // buffer selector
+  //////////////////////////////
 
-  calculate_checksum_comb checksum (
-      .flit(uart_tx_flit_without_checksum),
-      .flit_out(uart_tx_flit)
+  logic interdevice_tx_valid;
+  logic interdevice_tx_ready;
+  types::flit_t interdevice_tx_flit;
+
+  buffer_selector_comb buffer_selector (
+      .nocclk(nocclk),
+      .rst_n(rst_n),
+      .ack_flit(ack_poped_flit),
+      .ack_flit_valid(ack_poped_flit_valid),
+      .ack_flit_ready(ack_poped_flit_ready),
+      .waiting_ack_buffer(waiting_ack_poped_flit),
+      .waiting_ack_buffer_valid(waiting_ack_poped_flit_valid),
+      .waiting_ack_buffer_ready(waiting_ack_poped_flit_ready),
+      .forwarded_flit(forwarded_poped_flit),
+      .forwarded_flit_valid(forwarded_poped_flit_valid),
+      .forwarded_flit_ready(forwarded_poped_flit_ready),
+      .cpu_to_noc_flit(cpu_to_noc_poped_flit),
+      .cpu_to_noc_flit_valid(cpu_to_noc_poped_flit_valid),
+      .cpu_to_noc_flit_ready(cpu_to_noc_poped_flit_ready),
+
+      .flit_out_ready(interdevice_tx_ready),
+      .flit_out(interdevice_tx_flit),
+      .flit_out_valid(interdevice_tx_valid),
   );
 
-  // -------------------------
-  // 4. data out
-  // is_destination_selfが立っている場合、データを出力する
-
-  logic [127:0] raw_receive_flit;
-  logic [1:0] receive_position;
-  logic raw_receive_flit_completed;
-
-  always_ff @(posedge cpuclk or negedge rst_n) begin
-    if (!rst_n) begin
-      receive_position <= 0;
-    end else begin
-      if (data_out_rdy) begin
-        data_out <= raw_receive_flit[receive_position*32+:32];
-        receive_position <= receive_position + 1;
-        raw_receive_flit_completed <= (receive_position == 3);
-      end
-    end
-  end
-
 
   //////////////////////////////
-  // output device
+  // inter device comunication
   //////////////////////////////
+  interdevice_controller interdevice_controller (
+      .cpuclk(cpuclk),
+      .rst_n(rst_n),
+      .this_node_id(this_node_id),
+      .interdevice_tx_flit(interdevice_tx_flit),
+      .interdevice_tx_valid(interdevice_tx_valid),
+      .interdevice_tx_ready(interdevice_tx_ready),
+
+      .interdevice_rx_ready(interdevice_rx_rdy),
+      .interdevice_rx_flit (interdevice_rx_flit),
+      .interdevice_rx_valid(interdevice_rx_valid),
+
 `ifdef UART
-  logic uart_clk;
-
-  uart_clk uart_clk1 (
-      .clk(cpuclk),
-      .rst_n(rst_n),
-      .uart_clk_out(uart_clk)
-  );
-
-  uart_rx uart_rx1 (
-      .uart_clk(uart_clk),
-      .rst_n(rst_n),
       .uart_rx(uart_rx),
-
-      .flit_out(uart_rx_flit),
-      .flit_out_vld(uart_tx_flit_valid)
-  );
-
-  uart_tx uart_tx1 (
-      .uart_clk(uart_clk),
-      .rst_n(rst_n),
-      .flit_in_vld(uart_tx_flit_valid),
-      .flit_in(uart_tx_flit_without_next_node),
-
-      .flit_in_rdy(uart_tx_rdy)
-  );
+      .uart_tx(uart_tx)
 `else
-    assign flit_rx = uart_tx_flit;
-    assign flit_rx_vld = uart_tx_flit_valid;
-    assign flit_tx = uart_tx_flit;
-    assign flit_tx_rdy = uart_tx_rdy;
+      .flit_rx(flit_rx),
+      .flit_rx_valid(flit_rx_vld),
+      .flit_rx_ready(flit_rx_rdy),
+      .flit_tx(flit_tx),
+      .flit_tx_valid(flit_tx_vld),
+      .flit_tx_ready(flit_tx_rdy)
 `endif
+  );
 
 endmodule

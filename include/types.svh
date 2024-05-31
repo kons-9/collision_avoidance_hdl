@@ -2,6 +2,10 @@
 `define TYPES_SVH
 package types;
   //////////////////////////////////////////////////////////////////////
+  // noc configuration
+  //////////////////////////////////////////////////////////////////////
+
+  //////////////////////////////////////////////////////////////////////
   // uart clk definition
   //////////////////////////////////////////////////////////////////////
   typedef logic [7:0] uart_clk_precision_t;
@@ -59,8 +63,9 @@ package types;
     NOPE
   } flit_type_t;
   typedef logic [7:0] node_id_t;
+  typedef logic [7:0] packet_id_t;
   typedef struct packed {
-    logic [7:0] packet_id;
+    packet_id_t packet_id;
     logic [7:0] flit_num;
   } flit_id_t;
   typedef struct packed {
@@ -133,5 +138,27 @@ package types;
     flit_t [NUM_ENTRIES-1:0] flit_buffer;
     buffer_state_t state;
   } flit_buffer_t;
+
+  //////////////////////////////////////////////////////////////////////
+  // packet buffer
+  //////////////////////////////////////////////////////////////////////
+  parameter int PACKET_BUFFER_NUM_ENTRIES = 8;
+
+  typedef struct packed {
+    logic valid_state;
+    packet_id_t packet_id;
+    logic [$clog2(PACKET_BUFFER_NUM_ENTRIES)-1:0] index;
+  } packet_key_t;
+
+  typedef struct packed {
+    logic is_completed;
+    flit_t [NUM_ENTRIES-1:0] buffer;
+  } packet_element_t;
+
+  typedef struct packed {
+    packet_key_t [PACKET_BUFFER_NUM_ENTRIES-1:0] packet_key;
+    packet_element_t [PACKET_BUFFER_NUM_ENTRIES-1:0] packet_element;
+  } packet_buffer_t;
+
 endpackage
 `endif

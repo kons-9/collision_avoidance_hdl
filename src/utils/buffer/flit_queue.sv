@@ -1,20 +1,26 @@
-module flit_buffer (
+/// queue like buffer for flit
+/// FIFO buffer for flit
+module flit_queue (
     input logic clk,
     input logic rst_n,
-    input types::flit_buffer_t buffer,
-    input types::flit_t insert_flit,
-    input logic insert_flit_valid,
-    input logic is_pop,
 
-    output types::flit_t next_flit,
-    output types::buffer_state_t next_state
+    // for push
+    input types::flit_t pushed_flit,
+    input logic pushed_flit_valid,
+    output logic pushed_flit_ready,
+
+    // for pop
+    input logic poped_flit_ready,
+    output logic poped_flit_valid,
+    output types::flit_t poped_flit
 );
+  // MUST TODO
   // もしbuffer.stateがEMPTYならば、popはできない
+  types::flit_buffer_t buffer;
 
   assign next_state = buffer.state;
   assign next_flit = buffer.flit_buffer[buffer.tail_index];
 
-  // TODO
   always_ff @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
       buffer.state <= types::EMPTY;
