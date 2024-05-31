@@ -69,7 +69,8 @@ package types;
     logic [7:0] flit_num;
   } flit_id_t;
   typedef struct packed {
-    logic [3:0] version;   // 4 bits
+    logic [2:0] version;   // 3 bits
+    logic is_ack;  // 1 bit
     flit_type_t flittype;  // 4 bits
     node_id_t   src_id;    // 8 bits
     node_id_t   dst_id;    // 8 bits
