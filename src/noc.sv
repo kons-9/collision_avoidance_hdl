@@ -250,7 +250,7 @@ module noc (
   logic interdevice_tx_ready;
   types::flit_t interdevice_tx_flit;
 
-  buffer_selector_comb buffer_selector (
+  tx_buffer_selector_comb tx_buffer_selector_comb (
       .nocclk(nocclk),
       .rst_n(rst_n),
       .ack_flit(ack_poped_flit),

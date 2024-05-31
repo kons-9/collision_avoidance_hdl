@@ -1,7 +1,7 @@
 ///@brief 適切なバッファ選択を行うモジュール
 /// ack buffer, forwarding buffer, cpu_to_noc bufferの状態を監視し、適切な
 //bufferからデータを取り出す。
-module buffer_selecter_comb (
+module tx_buffer_selecter_comb (
     input types::flit_t ack_flit,
     input logic ack_flit_valid,
     output logic ack_flit_ready,
@@ -24,7 +24,7 @@ module buffer_selecter_comb (
 );
 
   // 単純な優先度で選択する
-  // ack buffer -> forwarding buffer -> cpu_to_noc buffer
+  // ack buffer -> waiting_ack_buffer -> forwarding buffer -> cpu_to_noc buffer
   // ackはリアルタイム性が重要なため、最優先
 
   always_comb begin
