@@ -9,7 +9,7 @@ module calculate_checksum_comb (
   types::checksum_t flit_checksum;
   assign flit_checksum = flit_in.checksum;
 
-  // TODO
+  // MUST TODO
   always_comb begin
     // TODO チェックサムを計算する
     checksum = 0;
