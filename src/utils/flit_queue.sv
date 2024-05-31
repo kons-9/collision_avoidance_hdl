@@ -1,6 +1,8 @@
 /// queue like buffer for flit
 /// FIFO buffer for flit
-module flit_queue (
+module flit_queue #(
+    parameter int NUM_ENTRIES = 8
+) (
     input logic clk,
     input logic rst_n,
 
@@ -14,56 +16,69 @@ module flit_queue (
     output logic poped_flit_valid,
     output types::flit_t poped_flit
 );
-  // MUST TODO
-  // もしbuffer.stateがEMPTYならば、popはできない
-  types::flit_buffer_t buffer;
+  typedef enum logic [1:0] {
+    EMPTY,   // head == tail
+    VACANT,  // head != tail
+    FULL,    // head == tail
+    ERROR
+  } buffer_state_t;
+  typedef struct packed {
+    logic [$clog2(NUM_ENTRIES)-1:0] head_index;
+    logic [$clog2(NUM_ENTRIES)-1:0] tail_index;
+    flit_t [NUM_ENTRIES-1:0] flit_buffer;
+    buffer_state_t state;
+  } flit_buffer_t;
 
-  assign next_state = buffer.state;
-  assign next_flit = buffer.flit_buffer[buffer.tail_index];
+  flit_buffer_t buffer;
+
+  assign poped_flit = buffer.flit_buffer[buffer.tail_index];
+  assign poped_flit_valid = buffer.state === VACANT || buffer.state === FULL;
+  assign pushed_flit_ready = buffer.state === VACANT || buffer.state === EMPTY;
 
   always_ff @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
-      buffer.state <= types::EMPTY;
+      buffer.state <= EMPTY;
       buffer.head_index <= 0;
       buffer.tail_index <= 0;
     end else begin
       case (buffer.state)
-        types::EMPTY: begin
-          if (insert_flit_valid) begin
-            buffer.state <= types::VACANT;
-            flit_buffer[buffer.head_index] <= insert_flit;
+        EMPTY: begin
+          // pushed_flit_ready == 1 & poped_flit_valid == 0
+          if (pushed_flit_valid) begin
+            buffer.flit_buffer[buffer.head_index] <= pushed_flit;
             buffer.head_index <= buffer.head_index + 1;
+            buffer.state <= VACANT;
           end
         end
-        types::VACANT: begin
-          if (is_pop) begin
-            buffer.state <= (buffer.head_index == buffer.tail_index+1) ?
-                types::EMPTY : types::VACANT;
+        VACANT: begin
+          // pushed_flit_ready == 1 & poped_flit_valid == 0
+          if (push_flit_valid & poped_flit_ready) begin
+            buffer.flit_buffer[buffer.head_index] <= pushed_flit;
+            buffer.head_index <= buffer.head_index + 1;
             buffer.tail_index <= buffer.tail_index + 1;
-          end else if (insert_flit_valid) begin
-            buffer.state <= (buffer.head_index == buffer.tail_index+1) ?
-                types::FULL : types::VACANT;
-            flit_buffer[buffer.head_index] <= insert_flit;
+          end else if (pushed_flit_valid) begin
+            if (buffer.head_index + 1 === buffer.tail_index) begin
+              buffer.state <= FULL;
+            end
+            buffer.flit_buffer[buffer.head_index] <= pushed_flit;
             buffer.head_index <= buffer.head_index + 1;
+          end else if (poped_flit_ready) begin
+            if (buffer.head_index === buffer.tail_index + 1) begin
+              buffer.state <= EMPTY;
+            end
+            buffer.tail_index <= buffer.tail_index + 1;
           end
         end
-        types::ALMOST_FULL: begin
-          if (is_pop) begin
-            buffer.state <= types::VACANT;
-          end else if (insert_flit_valid) begin
-            buffer.state <= types::FULL;
-          end
-        end
-        types::FULL: begin
-          if (is_pop) begin
-            buffer.state <= types::VACANT;
-          end else if (insert_flit_valid) begin
-            buffer.state <= types::FULL;
+        FULL: begin
+          // pushed_flit_ready == 0 & poped_flit_valid == 1
+          if (poped_flit_ready) begin
+            buffer.tail_index <= buffer.tail_index + 1;
+            buffer.state <= VACANT;
           end
         end
         default: begin
           // unreachable
-          buffer.state <= types::EMPTY;
+          buffer.state <= ERROR;
         end
       endcase
     end

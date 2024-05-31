@@ -24,20 +24,6 @@ package types;
     ERROR
   } noc_state_t;
 
-  typedef enum logic [1:0] {
-    TX_IDLE,
-    TX_START_BIT,
-    TX_DATA,
-    TX_END_BIT
-  } uart_tx_state_t;
-
-  typedef enum logic [1:0] {
-    RX_IDLE,
-    RX_NOT_RECEIVING,
-    RX_DATA,
-    RX_END_BIT
-  } uart_rx_state_t;
-
   //////////////////////////////////////////////////////////////////////
   // signal definition
   //////////////////////////////////////////////////////////////////////
@@ -123,26 +109,10 @@ package types;
   } flit_t;
 
   //////////////////////////////////////////////////////////////////////
-  // buffer definition
-  //////////////////////////////////////////////////////////////////////
-  parameter int NUM_ENTRIES = 8;
-  typedef enum logic [1:0] {
-    EMPTY,  // head == tail
-    VACANT,  // head != tail && tail != head + 1
-    ALMOST_FULL,  // tail == head + 1
-    FULL  // head == tail
-  } buffer_state_t;
-  typedef struct packed {
-    logic [$clog2(NUM_ENTRIES)-1:0] head_index;
-    logic [$clog2(NUM_ENTRIES)-1:0] tail_index;
-    flit_t [NUM_ENTRIES-1:0] flit_buffer;
-    buffer_state_t state;
-  } flit_buffer_t;
-
-  //////////////////////////////////////////////////////////////////////
   // packet buffer
   //////////////////////////////////////////////////////////////////////
   parameter int PACKET_BUFFER_NUM_ENTRIES = 8;
+  parameter int NUM_ENTRIES = 8;
 
   typedef struct packed {
     logic valid_state;
