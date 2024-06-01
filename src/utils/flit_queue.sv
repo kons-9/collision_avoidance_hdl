@@ -1,3 +1,5 @@
+`include "types.svh"
+import types::flit_t;
 /// queue like buffer for flit
 /// FIFO buffer for flit
 module flit_queue #(
@@ -25,7 +27,7 @@ module flit_queue #(
   typedef struct packed {
     logic [$clog2(NUM_ENTRIES)-1:0] head_index;
     logic [$clog2(NUM_ENTRIES)-1:0] tail_index;
-    flit_t [NUM_ENTRIES-1:0] flit_buffer;
+    flit_t flit_buffer[NUM_ENTRIES];
     buffer_state_t state;
   } flit_buffer_t;
 
@@ -51,8 +53,8 @@ module flit_queue #(
           end
         end
         VACANT: begin
-          // pushed_flit_ready == 1 & poped_flit_valid == 0
-          if (push_flit_valid & poped_flit_ready) begin
+          // pushed_flit_ready == 1 & poped_flit_valid == 1
+          if (pushed_flit_valid & poped_flit_ready) begin
             buffer.flit_buffer[buffer.head_index] <= pushed_flit;
             buffer.head_index <= buffer.head_index + 1;
             buffer.tail_index <= buffer.tail_index + 1;
@@ -87,9 +89,9 @@ module flit_queue #(
   //   --- Assertions ---
   // *************************************************************
   // TODO
-  index_constraint :
-  assert property (@(posedge clk) disable iff (rst) (last_index[vc] >= data_index))
-  else $error("index_constraint");
+  // index_constraint :
+  // assert property (@(posedge clk) disable iff (rst) (last_index[vc] >= data_index))
+  // else $error("index_constraint");
   // *************************************************************
 endmodule
 

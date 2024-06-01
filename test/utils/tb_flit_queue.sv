@@ -1,76 +1,160 @@
 `include "types.svh"
+import types::*;
+
 module tb_flit_queue ();
 
   timeunit 10ps; timeprecision 10ps;
-  import types::flit_t;
 
   // generate clk
   bit clk = 0;
+  bit rst_n = 1;
   always begin
     #5 clk = ~clk;
   end
 
   // input
-  types::flit_t flit_in;
+  types::flit_t pushed_flit = 0;
+  logic pushed_flit_valid = 0;
+  logic poped_flit_ready = 0;
 
   // output
-  types::checksum_t checksum;
-  logic is_valid;
-  types::flit_t flit_out;
-  // instantiate DUT
-  calculate_checksum_comb calculate_checksum_comb (
-      .flit_in (flit_in),
-      .checksum(checksum),
-      .is_valid(is_valid),
-      .flit_out(flit_out)
+  logic pushed_flit_ready;
+  logic poped_flit_valid;
+  types::flit_t poped_flit;
+
+  flit_queue flit_queue (
+      .clk(clk),
+      .rst_n(rst_n),
+      .pushed_flit(pushed_flit),
+      .pushed_flit_valid(pushed_flit_valid),
+      .pushed_flit_ready(pushed_flit_ready),
+      .poped_flit_ready(poped_flit_ready),
+      .poped_flit_valid(poped_flit_valid),
+      .poped_flit(poped_flit)
   );
 
   // expected
-  types::checksum_t expected_checksum;
-  bit expected_is_valid;
+  function automatic void test_expected(logic expected_pushed_flit_ready,
+                                        logic expected_poped_flit_valid,
+                                        types::flit_t expected_flit, int line, string file);
+    assert (pushed_flit_ready == expected_pushed_flit_ready)
+    else
+      $display("Error: pushed_flit_ready = %0d(file:%0s line:%0d)", pushed_flit_ready, file, line);
+    assert (poped_flit_valid == expected_poped_flit_valid)
+    else $display("Error: poped_flit_valid = %0d(file:%0s line:%0d)", poped_flit_valid, file, line);
+    if (poped_flit_valid) begin
+      assert (poped_flit == expected_flit)
+      else $display("Error: poped_flit = %0h(file:%0s line:%0d)", poped_flit, file, line);
+    end
+  endfunction
+
+  logic null_flit = 0;
+  types::flit_t expected_flit = 0;
+  logic expected_pushed_flit_ready;
+  logic expected_poped_flit_valid;
 
   initial begin
+    $dumpfile("tb_flit_queue.vcd");
+    $dumpvars(0, tb_flit_queue);
     // flit_in is complete flit(is_valid == true)
     @(posedge clk);
-    flit_in.header.version = 0;
-    flit_in.header.flittype = types::NOPE;
-    flit_in.header.src_id = 0;
-    flit_in.header.dst_id = 0;
-    flit_in.header.flit_id.packet_id = 0;
-    flit_in.header.flit_id.flit_num = 0;
-    flit_in.payload.nope = 0;
-    flit_in.checksum = 8'h00;
+    rst_n = 0;
+    @(posedge clk);
+    rst_n = 1;
 
-    expected_checksum = 8'h00;
-    expected_is_valid = 1;
+    // push flit
+    pushed_flit.header.src_id = 8'h01;
+    pushed_flit_valid = 1;
 
+    @(posedge clk);
+    expected_flit = pushed_flit;
+    expected_pushed_flit_ready = 1;
+    expected_poped_flit_valid = 1;
+    test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit, `__LINE__,
+                  `__FILE__);
 
-    // flit_in is not complete flit
-    // @(posedge clk);
-    // flit_in = '{2'h0, 4'h0, 4'h0, 8'h02};
-    // expected_checksum = 8'h0;
-    // expected_is_valid = 0;
+    // pop flit
+    poped_flit_ready = 1;
+    pushed_flit_valid = 0;
+    @(posedge clk);
+    expected_pushed_flit_ready = 1;
+    expected_poped_flit_valid = 0;
+    expected_flit = null_flit;
+    test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit, `__LINE__,
+                  `__FILE__);
+
+    // nothing
+    poped_flit_ready  = 0;
+    pushed_flit_valid = 0;
+    @(posedge clk);
+    expected_pushed_flit_ready = 1;
+    expected_poped_flit_valid = 0;
+    expected_flit = null_flit;
+    test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit, `__LINE__,
+                  `__FILE__);
+
+    // multiple push
+    pushed_flit.header.src_id = 8'h02;
+    pushed_flit_valid = 1;
+    poped_flit_ready = 0;
+    @(posedge clk);
+    expected_flit = pushed_flit;
+    expected_pushed_flit_ready = 1;
+    expected_poped_flit_valid = 1;
+    test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit, `__LINE__,
+                  `__FILE__);
+
+    pushed_flit.header.src_id = 8'h03;
+    @(posedge clk);
+    test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit, `__LINE__,
+                  `__FILE__);
+
+    pushed_flit.header.src_id = 8'h04;
+    @(posedge clk);
+    test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit, `__LINE__,
+                  `__FILE__);
+    test_expected(1, 1, expected_flit, `__LINE__, `__FILE__);
+
+    pushed_flit_valid = 0;
+    @(posedge clk);
+    test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit, `__LINE__,
+                  `__FILE__);
+
+    // multiple pop
+    poped_flit_ready = 1;
+    pushed_flit_valid = 0;
+    @(posedge clk);
+    expected_flit.header.src_id = 8'h03;
+    test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit, `__LINE__,
+                  `__FILE__);
+
+    @(posedge clk);
+    expected_flit.header.src_id = 8'h04;
+    test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit, `__LINE__,
+                  `__FILE__);
+
+    // push and pop
+    poped_flit_ready = 1;
+    pushed_flit_valid = 1;
+    pushed_flit.header.src_id = 8'h05;
+    @(posedge clk);
+    expected_flit.header.src_id = 8'h05;
+    test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit, `__LINE__,
+                  `__FILE__);
+
+    // pop last flit
+    pushed_flit_valid = 0;
+    poped_flit_ready  = 1;
+    @(posedge clk);
+    expected_pushed_flit_ready = 1;
+    expected_poped_flit_valid = 0;
+    expected_flit = null_flit;
+    test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit, `__LINE__,
+                  `__FILE__);
+
     repeat (10) @(posedge clk);
 
     $finish;
   end
-
-  // assertion
-  // always@(*) begin
-  //   assert (flit_out.checksum == checksum)
-  //   else $display("flit_out.checksum != checksum");
-  //
-  //   assert (flit_out.header == flit_in.header)
-  //   else $display("flit_out.header != flit_in.header");
-  //
-  //   assert (flit_out.payload == flit_in.payload)
-  //   else $display("flit_out.payload != flit_in.payload");
-  //
-  //   assert (checksum == expected_checksum)
-  //   else $display("checksum != expected_checksum");
-  //
-  //   assert (is_valid == expected_is_valid)
-  //   else $display("is_valid != expected_is_valid");
-  // end
 
 endmodule

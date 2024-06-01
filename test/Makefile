@@ -1,4 +1,4 @@
-BUILD_TOOL:=iverilog -g2012
+BUILD_TOOL:=iverilog
 SIM_TOOL:=vvp
 VIEW:=gtkwave
 
@@ -9,7 +9,7 @@ TB_DIR:=$(PROJECT_PATH)/test
 INCLUDE_DIR:=$(PROJECT_PATH)/include
 BUILD_DIR=$(PROJECT_PATH)/build
 
-BUILD_OPTION=-g2012 -I$(INCLUDE_DIR)
+BUILD_OPTION=-g2012 -I$(INCLUDE_DIR) -t$(SIM_TOOL)
 
 all: prepare run_top_test run_checksum_test
 
@@ -27,6 +27,12 @@ run_checksum_test: checksum_test
 
 checksum_test: $(SRC_DIR)/utils/calculate_checksum_comb.sv $(TB_DIR)/utils/tb_calculate_checksum_comb.sv
 	$(BUILD_TOOL) $(BUILD_OPTION) -o $(BUILD_DIR)/$@ $^ -s tb_calculate_checksum_comb
+
+run_buffer_test: buffer_test
+	$(SIM_TOOL) $(BUILD_DIR)/$^
+
+buffer_test: $(SRC_DIR)/utils/flit_queue.sv $(TB_DIR)/utils/tb_flit_queue.sv
+	$(BUILD_TOOL) $(BUILD_OPTION) -o $(BUILD_DIR)/$@ $^ -s tb_flit_queue
 
 clean:
 	rm -rf $(BUILD_DIR)/*
