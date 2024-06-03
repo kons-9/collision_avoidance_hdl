@@ -39,10 +39,10 @@ module tb_flit_queue ();
   function automatic void test_expected(logic expected_pushed_flit_ready,
                                         logic expected_poped_flit_valid,
                                         types::flit_t expected_flit, int line, string file);
-    `TEST_EXPECTED(expected_pushed_flit_ready, pushed_flit_ready, "pushed_flit_ready");
-    `TEST_EXPECTED(expected_poped_flit_valid, poped_flit_valid, "poped_flit_valid");
+    `TEST_EXPECTED(expected_pushed_flit_ready, pushed_flit_ready, "pushed_flit_ready", file, line);
+    `TEST_EXPECTED(expected_poped_flit_valid, poped_flit_valid, "poped_flit_valid", file, line);
     if (poped_flit_valid) begin
-      `TEST_EXPECTED(expected_flit, poped_flit, "poped_flit");
+      `TEST_EXPECTED(expected_flit, poped_flit, "poped_flit", file, line);
     end
   endfunction
 
