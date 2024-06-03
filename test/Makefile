@@ -1,40 +1,33 @@
-BUILD_TOOL:=iverilog
-SIM_TOOL:=vvp
-VIEW:=gtkwave
-
 PROJECT_PATH:=$(abspath ../)
 
 SRC_DIR:=$(PROJECT_PATH)/src
 TB_DIR:=$(PROJECT_PATH)/test
 INCLUDE_DIR:=$(PROJECT_PATH)/include
 BUILD_DIR=$(PROJECT_PATH)/build
+TEST_DIR=$(BUILD_DIR)/tests
 
-BUILD_OPTION=-g2012 -I$(INCLUDE_DIR) -t$(SIM_TOOL)
+# BUILD_TOOL:=iverilog
+# SIM_TOOL:=vvp
+# BUILD_OPTION=-g2012 -I$(INCLUDE_DIR) -t$(SIM_TOOL)
 
-all: prepare run_top_test run_checksum_test
+UNIT_TEST_TB_FILENAMES:=utils/tb_calculate_checksum_comb.sv utils/tb_flit_queue.sv
+UNIT_TEST_TB_FILES:=$(addprefix $(TB_DIR)/,$(UNIT_TEST_TB_FILENAMES))
+UNIT_TEST_SRC_FILES:=$(addprefix $(SRC_DIR)/,$(subst tb_,,$(UNIT_TEST_TB_FILENAMES)))
+UNIT_TEST_TARGETS:=$(subst .sv,,$(subst $(SRC_DIR)/,,$(UNIT_TEST_SRC_FILES)))
 
-prepare: $(BUILD_DIR)
-	mkdir -p $(BUILD_DIR)
+.PHONY: all prepare clean
 
-run_top_test: top_test
-	$(SIM_TOOL) $(BUILD_DIR)/$^
+all: prepare tb_calculate_checksum_comb tb_flit_queue
 
-top_test: $(TB_DIR)/tb_top.sv
-	$(BUILD_TOOL) $(BUILD_OPTION) -o $(BUILD_DIR)/$@ $^ -s tb_top 
+prepare: $(BUILD_DIR) $(TEST_DIR)
+	mkdir -p $(TEST_DIR)
 
-run_checksum_test: checksum_test
-	$(SIM_TOOL) $(BUILD_DIR)/$^
+tb_calculate_checksum_comb: $(SRC_DIR)/utils/calculate_checksum_comb.sv $(TB_DIR)/utils/tb_calculate_checksum_comb.sv
+	./xsim_test.sh $@ $(SRC_DIR) $(TB_DIR) $(TEST_DIR) $(INCLUDE_DIR) $^
 
-checksum_test: $(SRC_DIR)/utils/calculate_checksum_comb.sv $(TB_DIR)/utils/tb_calculate_checksum_comb.sv
-	$(BUILD_TOOL) $(BUILD_OPTION) -o $(BUILD_DIR)/$@ $^ -s tb_calculate_checksum_comb
-
-run_buffer_test: buffer_test
-	$(SIM_TOOL) $(BUILD_DIR)/$^
-
-buffer_test: $(SRC_DIR)/utils/flit_queue.sv $(TB_DIR)/utils/tb_flit_queue.sv
-	$(BUILD_TOOL) $(BUILD_OPTION) -o $(BUILD_DIR)/$@ $^ -s tb_flit_queue
+tb_flit_queue: $(TB_DIR)/utils/tb_flit_queue.sv $(SRC_DIR)/utils/flit_queue.sv
+	./xsim_test.sh $@ $(SRC_DIR) $(TB_DIR) $(TEST_DIR) $(INCLUDE_DIR) $^
 
 clean:
-	rm -rf $(BUILD_DIR)/*
+	rm -rf $(BUILD_DIR)/tests/*
 
-.PHONY: all prepare run_top_test run_checksum_test clean
