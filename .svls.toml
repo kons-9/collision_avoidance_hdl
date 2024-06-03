@@ -1,5 +1,5 @@
 [verilog]
-include_paths = ["include/"]
+include_paths = ["include", "tests/include", "src"]
 defines = ["DEBUG"]
 
 [option]
