@@ -19,9 +19,9 @@ UNIT_TEST_TARGETS:=$(subst .sv,,$(subst $(SRC_DIR)/,,$(UNIT_TEST_SRC_FILES)))
 .PHONY: all prepare clean
 
 all: prepare tb_calculate_checksum_comb tb_flit_queue
+	echo "All tests passed"
 
-prepare: $(BUILD_DIR) $(TEST_DIR)
-	mkdir -p $(TEST_DIR)
+prepare: $(TEST_DIR)
 
 tb_calculate_checksum_comb: $(SRC_DIR)/utils/calculate_checksum_comb.sv $(TB_DIR)/utils/tb_calculate_checksum_comb.sv
 	./xsim_test.sh $@ $(SRC_DIR) $(TB_DIR) $(TEST_DIR) $(INCLUDE_DIR) $(TB_INCLUDE_DIR) $^
@@ -31,6 +31,8 @@ tb_flit_queue: $(TB_DIR)/utils/tb_flit_queue.sv $(SRC_DIR)/utils/flit_queue.sv
 	./xsim_test.sh $@ $(SRC_DIR) $(TB_DIR) $(TEST_DIR) $(INCLUDE_DIR) $(TB_INCLUDE_DIR) $^
 	cat $(TEST_DIR)/$@.log | grep -q "Test Passed" || exit 1
 
+$(TEST_DIR):
+	mkdir -p $@
+
 clean:
 	rm -rf $(BUILD_DIR)/tests/*
-

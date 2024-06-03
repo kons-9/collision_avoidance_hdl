@@ -33,6 +33,8 @@ module tb_calculate_checksum_comb ();
 
   initial begin
     `TEST_START("tb_calculate_checksum_comb.log")
+    $dumpfile("tb_calculate_checksum_comb.vcd");
+    $dumpvars(0, tb_calculate_checksum_comb);
     // flit_in is complete flit(is_valid == true)
     @(posedge clk);
     flit_in.header.version = 0;
@@ -43,9 +45,9 @@ module tb_calculate_checksum_comb ();
     flit_in.header.flit_id.flit_num = 0;
     flit_in.payload.nope = 0;
     flit_in.checksum = 8'h00;
-
     expected_checksum = 8'h00;
     expected_is_valid = 1;
+    #1;
     `TEST_EXPECTED(expected_checksum, checksum, "checksum");
     `TEST_EXPECTED(expected_is_valid, is_valid, "is_valid");
     `TEST_EXPECTED(flit_in.header, flit_out.header, "flit_out");

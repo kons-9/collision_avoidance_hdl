@@ -21,7 +21,9 @@ SIM_TOOL=xsim
 
 PARSE_OPTION="-sv --sourcelibext sv -i $include_dir -i $test_include_dir --sourcelibdir $src_dir"
 ELAB_OPTION="--relax --debug all -v 0"
+# if you want to use vivado gui, add -gui option, and not use tclbatch option because it runs all simulation and immediately close the gui.
 SIM_OPTION="--tclbatch $tb_dir/xsim_test.tcl"
+# SIM_OPTION="-g"
 
 # move to test directory
 mkdir -p $test_dir
@@ -45,9 +47,7 @@ if [ $? -ne 0 ]; then
 fi
 
 print_yellow "$SIM_TOOL $SIM_OPTION -wdb $target_name.wdb $target_name\n"
-# echo -e "\033[32m"
 eval "$SIM_TOOL $SIM_OPTION -wdb $target_name.wdb $target_name"
-# echo -e "\033[0m"
 if [ $? -ne 0 ]; then
     print_red "Error: $SIM_TOOL failed"
     exit 1
