@@ -15,15 +15,15 @@ function print_red(){
     echo -e "\033[31m$1\033[0m"
 }
 
-PARSE_TOOL=xvlog
-ELAB_TOOL=xelab
-SIM_TOOL=xsim
+PARSE_TOOL="xvlog"
+ELAB_TOOL="xelab"
+SIM_TOOL="xsim"
 
 PARSE_OPTION="-sv --sourcelibext sv -i $include_dir -i $test_include_dir --sourcelibdir $src_dir"
 ELAB_OPTION="--relax --debug all -v 0"
 # if you want to use vivado gui, add -gui option, and not use tclbatch option because it runs all simulation and immediately close the gui.
 SIM_OPTION="--tclbatch $tb_dir/xsim_test.tcl"
-# SIM_OPTION="-g"
+# SIM_OPTION="-g -t $tb_dir/vivado_gui.tcl"
 
 # move to test directory
 mkdir -p $test_dir
