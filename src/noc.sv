@@ -152,8 +152,6 @@ module noc (
   logic packet_buffer_valid;
   logic waiting_ack_buffer_valid;
   receive_controller_comb receive_controller_comb1 (
-      .nocclk(nocclk),
-      .rst_n(rst_n),
       .received_flit(interdevice_rx_flit),
       .received_flit_valid(interdevice_rx_valid),
       .received_flit_ready(interdevice_rx_ready),

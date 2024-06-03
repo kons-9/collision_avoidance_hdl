@@ -38,6 +38,7 @@ module tb_calculate_checksum_comb ();
     // flit_in is complete flit(is_valid == true)
     @(posedge clk);
     flit_in.header.version = 0;
+    flit_in.header.is_ack = 0;
     flit_in.header.flittype = types::NOPE;
     flit_in.header.src_id = 0;
     flit_in.header.dst_id = 0;

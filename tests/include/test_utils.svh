@@ -20,23 +20,23 @@ int __fd;
   $display("Test Start: %0s", __test_log_path); \
   `RESET_COLOR \
 
-`define TEST_EXPECTED(expected, actual, message) \
+`define TEST_EXPECTED(expected, actual, message, file = `__FILE__, line = `__LINE__) \
   __number_of_test++; \
   assert (expected == actual) else begin \
     __failed_count++; \
     `RED_COLOR \
-    $display("Error: %s, actual = %0d, expected = %0d(file:%0s line:%0d)", message, actual, expected, `__FILE__, `__LINE__); \
-    $fwrite(__fd, "Error: %s, actual = %0d, expected = %0d(file:%0s line:%0d)\n", message, actual, expected, `__FILE__, `__LINE__); \
+    $display("Error: %s, actual = %0d, expected = %0d(file:%0s line:%0d)", message, actual, expected, file, line); \
+    $fwrite(__fd, "Error: %s, actual = %0d, expected = %0d(file:%0s line:%0d)\n", message, actual, expected, file, line); \
     `RESET_COLOR \
   end
 
-`define TEST_UNEXPECTED(unexpected, actual, message) \
+`define TEST_UNEXPECTED(unexpected, actual, message, file = __FILE__, line = __LINE__) \
   __number_of_test++; \
   assert (expected != actual) else begin \
     __failed_count++; \
     `RED_COLOR \
-    $display("Error: %s, actual = %0d, unexpected = %0d(file:%0s line:%0d)", message, actual, unexpected, `__FILE__, `__LINE__); \
-    $fwrite(__fd, "Error: %s, actual = %0d, unexpected = %0d(file:%0s line:%0d)\n", message, actual, unexpected, `__FILE__, `__LINE__); \
+    $display("Error: %s, actual = %0d, unexpected = %0d(file:%0s line:%0d)", message, actual, unexpected, file, line); \
+    $fwrite(__fd, "Error: %s, actual = %0d, unexpected = %0d(file:%0s line:%0d)\n", message, actual, unexpected, file, line); \
     `RESET_COLOR \
   end
 
