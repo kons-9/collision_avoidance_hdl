@@ -26,6 +26,12 @@ module tb_template ();
   // expected
   logic expected_template;
 
+  `define LOCAL_TEST(__unused_args) \
+    @(posedge clk); \
+    `TEST_EXPECTED(expected_template, output_template, "output_template"); \
+    `TEST_UNEXPECTED(expected_template, output_not_template, "output_not_template"); \
+    #1
+
   initial begin
     `TEST_START("tb_template.log")
     $dumpfile("tb_template.vcd");
@@ -37,8 +43,8 @@ module tb_template ();
 
     input_tmplate = 1;
     expected_template = 1;
-    `TEST_EXPECTED(expected_template, output_template, "output_template");
-    `TEST_UNEXPECTED(expected_template, output_not_template, "output_not_template");
+
+    `LOCAL_TEST
 
     repeat (10) @(posedge clk);
 
