@@ -52,6 +52,7 @@ module tb_flit_queue ();
   logic expected_poped_flit_valid;
 
   initial begin
+    `TEST_START("tb_flit_queue.log")
     $dumpfile("tb_flit_queue.vcd");
     $dumpvars(0, tb_flit_queue);
     // flit_in is complete flit(is_valid == true)
