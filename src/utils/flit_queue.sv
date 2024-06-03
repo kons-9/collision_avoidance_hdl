@@ -24,7 +24,7 @@ module flit_queue #(
     FULL,    // head == tail
     ERROR
   } buffer_state_t;
-  typedef struct packed {
+  typedef struct {
     logic [$clog2(NUM_ENTRIES)-1:0] head_index;
     logic [$clog2(NUM_ENTRIES)-1:0] tail_index;
     flit_t flit_buffer[NUM_ENTRIES];

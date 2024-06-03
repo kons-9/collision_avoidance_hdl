@@ -1,0 +1,41 @@
+`ifndef TEST_UTILS_SVH
+`define TEST_UTILS_SVH
+
+`define RED_COLOR $write("\033[31m");
+`define GREEN_COLOR $write("\033[32m");
+`define YELLOW_COLOR $write("\033[33m");
+`define RESET_COLOR $write("\033[0m");
+
+int __failed_count = 0;
+int __number_of_test = 0;
+
+`define TEST_EXPECTED(expected, actual, message) \
+  __number_of_test++; \
+  assert (expected == actual) else begin \
+    __failed_count++; \
+    `RED_COLOR \
+    $display("Error: %s, actual = %0d, expected = %0d(file:%0s line:%0d)", message, actual, expected, `__FILE__, `__LINE__); \
+    `RESET_COLOR \
+  end
+
+`define TEST_UNEXPECTED(unexpected, actual, message) \
+  __number_of_test++; \
+  assert (expected != actual) else begin \
+    __failed_count++; \
+    `RED_COLOR \
+    $display("Error: %s, actual = %0d, unexpected = %0d(file:%0s line:%0d)", message, actual, unexpected, `__FILE__, `__LINE__); \
+    `RESET_COLOR \
+  end
+
+`define TEST_RESULT \
+  if (__failed_count > 0) begin \
+    `RED_COLOR \
+    $display("Test Failed: passed = %0d, failed = %0d", __number_of_test - __failed_count, __failed_count); \
+    `RESET_COLOR \
+  end else begin \
+    `GREEN_COLOR \
+    $display("Test Passed"); \
+    `RESET_COLOR \
+  end
+
+`endif

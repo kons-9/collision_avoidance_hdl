@@ -5,6 +5,7 @@ TB_DIR:=$(PROJECT_PATH)/test
 INCLUDE_DIR:=$(PROJECT_PATH)/include
 BUILD_DIR=$(PROJECT_PATH)/build
 TEST_DIR=$(BUILD_DIR)/tests
+TB_INCLUDE_DIR=$(TB_DIR)/include
 
 # BUILD_TOOL:=iverilog
 # SIM_TOOL:=vvp
@@ -23,10 +24,10 @@ prepare: $(BUILD_DIR) $(TEST_DIR)
 	mkdir -p $(TEST_DIR)
 
 tb_calculate_checksum_comb: $(SRC_DIR)/utils/calculate_checksum_comb.sv $(TB_DIR)/utils/tb_calculate_checksum_comb.sv
-	./xsim_test.sh $@ $(SRC_DIR) $(TB_DIR) $(TEST_DIR) $(INCLUDE_DIR) $^
+	./xsim_test.sh $@ $(SRC_DIR) $(TB_DIR) $(TEST_DIR) $(INCLUDE_DIR) $(TEST_INCLUDE_DIR) $^
 
 tb_flit_queue: $(TB_DIR)/utils/tb_flit_queue.sv $(SRC_DIR)/utils/flit_queue.sv
-	./xsim_test.sh $@ $(SRC_DIR) $(TB_DIR) $(TEST_DIR) $(INCLUDE_DIR) $^
+	./xsim_test.sh $@ $(SRC_DIR) $(TB_DIR) $(TEST_DIR) $(INCLUDE_DIR) $(TB_INCLUDE_DIR) $^
 
 clean:
 	rm -rf $(BUILD_DIR)/tests/*

@@ -1,4 +1,6 @@
 `include "types.svh"
+`include "test_utils.svh"
+
 import types::*;
 
 module tb_flit_queue ();
@@ -37,14 +39,10 @@ module tb_flit_queue ();
   function automatic void test_expected(logic expected_pushed_flit_ready,
                                         logic expected_poped_flit_valid,
                                         types::flit_t expected_flit, int line, string file);
-    assert (pushed_flit_ready == expected_pushed_flit_ready)
-    else
-      $display("Error: pushed_flit_ready = %0d(file:%0s line:%0d)", pushed_flit_ready, file, line);
-    assert (poped_flit_valid == expected_poped_flit_valid)
-    else $display("Error: poped_flit_valid = %0d(file:%0s line:%0d)", poped_flit_valid, file, line);
+    `TEST_EXPECTED(expected_pushed_flit_ready, pushed_flit_ready, "pushed_flit_ready");
+    `TEST_EXPECTED(expected_poped_flit_valid, poped_flit_valid, "poped_flit_valid");
     if (poped_flit_valid) begin
-      assert (poped_flit == expected_flit)
-      else $display("Error: poped_flit = %0h(file:%0s line:%0d)", poped_flit, file, line);
+      `TEST_EXPECTED(expected_flit, poped_flit, "poped_flit");
     end
   endfunction
 
@@ -74,7 +72,7 @@ module tb_flit_queue ();
                   `__FILE__);
 
     // pop flit
-    poped_flit_ready = 1;
+    poped_flit_ready  = 1;
     pushed_flit_valid = 0;
     @(posedge clk);
     expected_pushed_flit_ready = 1;
@@ -121,7 +119,7 @@ module tb_flit_queue ();
                   `__FILE__);
 
     // multiple pop
-    poped_flit_ready = 1;
+    poped_flit_ready  = 1;
     pushed_flit_valid = 0;
     @(posedge clk);
     expected_flit.header.src_id = 8'h03;
@@ -154,7 +152,9 @@ module tb_flit_queue ();
 
     repeat (10) @(posedge clk);
 
-    $finish;
+    `TEST_RESULT
+
+    $finish(0);
   end
 
 endmodule
