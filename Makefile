@@ -2,9 +2,6 @@
 
 SRC:=
 
-top:
-	
-
 test_all: 
 	make -C tests all
 

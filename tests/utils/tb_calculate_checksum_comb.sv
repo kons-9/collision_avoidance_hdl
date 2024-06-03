@@ -1,4 +1,6 @@
 `include "types.svh"
+`include "test_utils.svh"
+
 module tb_calculate_checksum_comb ();
 
   timeunit 10ps; timeprecision 10ps;
@@ -30,6 +32,9 @@ module tb_calculate_checksum_comb ();
   bit expected_is_valid;
 
   initial begin
+    `TEST_START("tb_calculate_checksum_comb.log")
+    $dumpfile("tb_calculate_checksum_comb.vcd");
+    $dumpvars(0, tb_calculate_checksum_comb);
     // flit_in is complete flit(is_valid == true)
     @(posedge clk);
     flit_in.header.version = 0;
@@ -40,37 +45,20 @@ module tb_calculate_checksum_comb ();
     flit_in.header.flit_id.flit_num = 0;
     flit_in.payload.nope = 0;
     flit_in.checksum = 8'h00;
-
     expected_checksum = 8'h00;
     expected_is_valid = 1;
+    #1;
+    `TEST_EXPECTED(expected_checksum, checksum, "checksum");
+    `TEST_EXPECTED(expected_is_valid, is_valid, "is_valid");
+    `TEST_EXPECTED(flit_in.header, flit_out.header, "flit_out");
+    `TEST_EXPECTED(flit_in.payload, flit_out.payload, "flit_out");
+    `TEST_EXPECTED(flit_in.checksum, flit_out.checksum, "flit_out");
 
-
-    // flit_in is not complete flit
-    // @(posedge clk);
-    // flit_in = '{2'h0, 4'h0, 4'h0, 8'h02};
-    // expected_checksum = 8'h0;
-    // expected_is_valid = 0;
     repeat (10) @(posedge clk);
 
+    `TEST_RESULT
     $finish;
   end
 
-  // assertion
-  // always@(*) begin
-  //   assert (flit_out.checksum == checksum)
-  //   else $display("flit_out.checksum != checksum");
-  //
-  //   assert (flit_out.header == flit_in.header)
-  //   else $display("flit_out.header != flit_in.header");
-  //
-  //   assert (flit_out.payload == flit_in.payload)
-  //   else $display("flit_out.payload != flit_in.payload");
-  //
-  //   assert (checksum == expected_checksum)
-  //   else $display("checksum != expected_checksum");
-  //
-  //   assert (is_valid == expected_is_valid)
-  //   else $display("is_valid != expected_is_valid");
-  // end
 
 endmodule

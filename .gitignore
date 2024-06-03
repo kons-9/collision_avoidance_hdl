@@ -1,2 +1,7 @@
 vivado
 build
+*.vcd
+vivado*
+
+
+svls.log

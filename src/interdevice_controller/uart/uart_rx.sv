@@ -1,13 +1,20 @@
 `include "types.sv"
 module uart_rx (
+    input  logic  nocclk,
     input  logic  uart_clk,
     input  logic  rst_n,
     input  logic  uart_rx,
     output types::flit_t flit_out,
     output logic  flit_out_vld
 );
+  typedef enum logic [1:0] {
+    RX_IDLE,
+    RX_NOT_RECEIVING,
+    RX_DATA,
+    RX_END_BIT
+  } uart_rx_state_t;
 
-  types::uart_rx_state_t rx_state;
+  uart_rx_state_t rx_state;
   types::flit_t flit_out_current;
   logic [$clog2(types::FLIT_WIDTH+1)-1:0] flit_out_current_position;
 

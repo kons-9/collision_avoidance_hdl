@@ -15,8 +15,15 @@ module uart_tx (
   logic [$clog2(types::FLIT_WIDTH+1)-1:0] flit_in_current_position;
   logic current_bit = flit_in_current[flit_in_current_position];
 
+  typedef enum logic [1:0] {
+    TX_IDLE,
+    TX_START_BIT,
+    TX_DATA,
+    TX_END_BIT
+  } uart_tx_state_t;
+
   // state is only idle, sending or sending_system
-  types::uart_tx_state_t tx_state;
+  uart_tx_state_t tx_state;
 
   assign flit_in_rdy = tx_state == types::IDLE;
 
