@@ -1,5 +1,6 @@
 `include "types.sv"
 module uart_rx (
+    input  logic  nocclk,
     input  logic  uart_clk,
     input  logic  rst_n,
     input  logic  uart_rx,

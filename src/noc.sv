@@ -1,4 +1,4 @@
-`include "types.sv"
+`include "types.svh"
 import types::flit_t;
 
 module noc (
@@ -59,7 +59,7 @@ module noc (
   types::flit_t interdevice_tx_flit;
 
   logic interdevice_rx_rdy;
-  input types::flit_t interdevice_rx_flit;
+  types::flit_t interdevice_rx_flit;
   logic interdevice_rx_valid;
 
   // TODO: LOCKをどうするか。
@@ -98,7 +98,7 @@ module noc (
       // pop
       .poped_flit(cpu_to_noc_poped_flit),
       .poped_flit_valid(cpu_to_noc_poped_flit_valid),
-      .poped_flit_ready(cpu_to_noc_poped_flit_ready),
+      .poped_flit_ready(cpu_to_noc_poped_flit_ready)
   );
 
   //////////////////////////////
@@ -121,7 +121,7 @@ module noc (
       // pop
       .poped_flit(noc_to_cpu_poped_flit),
       .poped_flit_valid(noc_to_cpu_poped_flit_valid),
-      .poped_flit_ready(noc_to_cpu_poped_flit_ready),
+      .poped_flit_ready(noc_to_cpu_poped_flit_ready)
   );
 
   noc_to_cpu_deflitizer noc_to_cpu_deflitizer1 (
@@ -132,7 +132,7 @@ module noc (
       .poped_flit_ready(noc_to_cpu_poped_flit_ready),
       .data_out_ready(data_out_rdy),
       .data_out(data_out),
-      .data_out_valid(data_out_vld),
+      .data_out_valid(data_out_vld)
   );
 
   //////////////////////////////
@@ -151,7 +151,7 @@ module noc (
   logic packet_buffer_ready;
   logic packet_buffer_valid;
   logic waiting_ack_buffer_valid;
-  receive_controller_comb(
+  receive_controller_comb receive_controller_comb1 (
       .nocclk(nocclk),
       .rst_n(rst_n),
       .received_flit(interdevice_rx_flit),
@@ -161,7 +161,7 @@ module noc (
       .ack_buffer_valid(ack_flit_valid),
       .packet_buffer_ready(packet_buffer_ready),
       .packet_buffer_valid(packet_buffer_valid),
-      .waiting_ack_buffer_valid(waiting_ack_buffer_valid),
+      .waiting_ack_buffer_valid(waiting_ack_buffer_valid)
   );
 
   // -------------------------
@@ -172,7 +172,7 @@ module noc (
   types::flit_t ack_flit;
   make_ack_comb make_ack_comb1 (
       .flit_in (interdevice_rx_flit),
-      .flit_out(ack_flit),
+      .flit_out(ack_flit)
   );
 
   wire ack_poped_flit_ready;
@@ -186,7 +186,7 @@ module noc (
       .pushed_flit_ready(ack_flit_ready),
       .poped_flit_ready(ack_poped_flit_ready),
       .poped_flit(ack_poped_flit),
-      .poped_flit_valid(ack_poped_flit_valid),
+      .poped_flit_valid(ack_poped_flit_valid)
   );
 
   // -------------------------
@@ -222,7 +222,7 @@ module noc (
       .pushed_flit_ready(forwarded_flit_ready),
       .poped_flit_ready(forwarded_poped_flit_ready),
       .poped_flit(forwarded_poped_flit),
-      .poped_flit_valid(forwarded_poped_flit_valid),
+      .poped_flit_valid(forwarded_poped_flit_valid)
   );
 
   //////////////////////////////
@@ -239,7 +239,7 @@ module noc (
       .waiting_ack_flit_valid(waiting_ack_buffer_valid),
       .poped_waiting_ack_flit_ready(waiting_ack_poped_flit_ready),
       .poped_waiting_ack_flit(waiting_ack_poped_flit),
-      .poped_waiting_ack_flit_valid(waiting_ack_poped_flit_valid),
+      .poped_waiting_ack_flit_valid(waiting_ack_poped_flit_valid)
   );
 
   //////////////////////////////
@@ -268,7 +268,7 @@ module noc (
 
       .flit_out_ready(interdevice_tx_ready),
       .flit_out(interdevice_tx_flit),
-      .flit_out_valid(interdevice_tx_valid),
+      .flit_out_valid(interdevice_tx_valid)
   );
 
 
