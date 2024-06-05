@@ -23,50 +23,50 @@ module tx_buffer_selecter_comb (
     output logic flit_out_valid
 );
 
-  // 単純な優先度で選択する
-  // ack buffer -> waiting_ack_buffer -> forwarding buffer -> cpu_to_noc buffer
-  // ackはリアルタイム性が重要なため、最優先
+    // 単純な優先度で選択する
+    // ack buffer -> waiting_ack_buffer -> forwarding buffer -> cpu_to_noc buffer
+    // ackはリアルタイム性が重要なため、最優先
 
-  always_comb begin
-    ack_flit_ready = 0;
-    forwarding_flit_ready = 0;
-    cpu_to_noc_flit_ready = 0;
-    waiting_ack_buffer_ready = 0;
-    flit_out = 0;
-    flit_out_valid = 0;
-    if (flit_out_ready) begin
-      if (ack_flit_valid) begin
-        ack_flit_ready = 1;
-        forwarding_flit_ready = 0;
-        cpu_to_noc_flit_ready = 0;
-        waiting_ack_buffer_ready = 0;
-        flit_out = ack_flit;
-        flit_out_valid = 1;
-      end else if (waiting_ack_buffer_valid) begin
+    always_comb begin
         ack_flit_ready = 0;
         forwarding_flit_ready = 0;
         cpu_to_noc_flit_ready = 0;
-        waiting_ack_buffer_ready = 1;
-        flit_out = waiting_ack_buffer_flit;
-        flit_out_valid = 1;
-      end else if (forwarding_flit_valid) begin
-        ack_flit_ready = 0;
-        forwarding_flit_ready = 1;
-        cpu_to_noc_flit_ready = 0;
         waiting_ack_buffer_ready = 0;
-        flit_out = forwarding_flit;
-        flit_out_valid = 1;
-      end else if (cpu_to_noc_flit_valid) begin
-        ack_flit_ready = 0;
-        forwarding_flit_ready = 0;
-        cpu_to_noc_flit_ready = 1;
-        waiting_ack_buffer_ready = 0;
-        flit_out = cpu_to_noc_flit;
-        flit_out_valid = 1;
-      end
+        flit_out = 0;
+        flit_out_valid = 0;
+        if (flit_out_ready) begin
+            if (ack_flit_valid) begin
+                ack_flit_ready = 1;
+                forwarding_flit_ready = 0;
+                cpu_to_noc_flit_ready = 0;
+                waiting_ack_buffer_ready = 0;
+                flit_out = ack_flit;
+                flit_out_valid = 1;
+            end else if (waiting_ack_buffer_valid) begin
+                ack_flit_ready = 0;
+                forwarding_flit_ready = 0;
+                cpu_to_noc_flit_ready = 0;
+                waiting_ack_buffer_ready = 1;
+                flit_out = waiting_ack_buffer_flit;
+                flit_out_valid = 1;
+            end else if (forwarding_flit_valid) begin
+                ack_flit_ready = 0;
+                forwarding_flit_ready = 1;
+                cpu_to_noc_flit_ready = 0;
+                waiting_ack_buffer_ready = 0;
+                flit_out = forwarding_flit;
+                flit_out_valid = 1;
+            end else if (cpu_to_noc_flit_valid) begin
+                ack_flit_ready = 0;
+                forwarding_flit_ready = 0;
+                cpu_to_noc_flit_ready = 1;
+                waiting_ack_buffer_ready = 0;
+                flit_out = cpu_to_noc_flit;
+                flit_out_valid = 1;
+            end
+        end
+
     end
-
-  end
 
 
 endmodule
