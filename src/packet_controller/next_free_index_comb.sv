@@ -9,11 +9,11 @@ module next_free_index_comb #(
     always_comb begin
         next_free_index = 0;
         for (int i = 0; i < NUM_ENTRIES; i++) begin
-            if (!free_index_bitmap[i]) begin
+            if (free_index_bitmap[i]) begin
                 next_free_index = i;
             end
         end
     end
 
-    assign next_free_index_valid = !free_index_bitmap[next_free_index];
+    assign next_free_index_valid = free_index_bitmap[next_free_index];
 endmodule

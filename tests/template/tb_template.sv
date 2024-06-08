@@ -27,11 +27,14 @@ module tb_TEMPLATE;
     // expected
     logic expected_template;
 
-    `define LOCAL_TEST(__unused_args) \
-    @(posedge clk); \
-    `TEST_EXPECTED(expected_template, output_template, "output_template"); \
-    `TEST_UNEXPECTED(expected_template, output_not_template, "output_not_template"); \
-    #1;
+    `define LOCAL_TEST(file = `__FILE__, line = `__LINE__) __local_test(__unused_args, file, line);
+
+    task automatic __local_test(string file, int line);
+        @(posedge clk);
+        `TEST_EXPECTED(expected_template, output_template, "output_template", file, line);
+        `TEST_UNEXPECTED(expected_template, output_not_template, "output_not_template", file, line);
+        #1;
+    endtask
 
     initial begin
         `TEST_START("tb_TEMPLATE.log")
@@ -44,7 +47,7 @@ module tb_TEMPLATE;
 
         input_template = 1;
         expected_template = 1;
-        `LOCAL_TEST
+        `LOCAL_TEST();
 
         repeat (10) @(posedge clk);
 

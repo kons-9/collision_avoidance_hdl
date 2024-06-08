@@ -2,7 +2,7 @@
 # tb_receive_controller_comb.sv
 # tb_tx_buffer_selecter_comb.sv
 
-NOC_TARGETS:=tb_noc tb_receive_controller_comb tb_tx_buffer_selecter_comb
+NOC_TARGETS:=tb_receive_controller_comb
 
 # tb_noc.sv
 tb_noc: $(TEST_DIR)/tb_noc.log

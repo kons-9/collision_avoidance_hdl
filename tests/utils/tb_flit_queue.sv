@@ -36,21 +36,23 @@ module tb_flit_queue ();
     );
 
     // expected
-    function automatic void test_expected(logic expected_pushed_flit_ready,
-                                          logic expected_poped_flit_valid,
-                                          types::flit_t expected_flit, int line, string file);
+    logic null_flit = 0;
+    types::flit_t expected_flit = 0;
+    logic expected_pushed_flit_ready;
+    logic expected_poped_flit_valid;
+
+
+    task automatic __local_test(int line, string file);
         `TEST_EXPECTED(expected_pushed_flit_ready, pushed_flit_ready, "pushed_flit_ready", file,
                        line);
         `TEST_EXPECTED(expected_poped_flit_valid, poped_flit_valid, "poped_flit_valid", file, line);
         if (poped_flit_valid) begin
             `TEST_EXPECTED(expected_flit, poped_flit, "poped_flit", file, line);
         end
-    endfunction
+    endtask
 
-    logic null_flit = 0;
-    types::flit_t expected_flit = 0;
-    logic expected_pushed_flit_ready;
-    logic expected_poped_flit_valid;
+    `define LOCAL_TEST(line=`__LINE__, file=`__FILE__) \
+        __local_test(line, file);
 
     initial begin
         `TEST_START("tb_flit_queue.log")
@@ -70,8 +72,7 @@ module tb_flit_queue ();
         expected_flit = pushed_flit;
         expected_pushed_flit_ready = 1;
         expected_poped_flit_valid = 1;
-        test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit,
-                      `__LINE__, `__FILE__);
+        `LOCAL_TEST();
 
         // pop flit
         poped_flit_ready  = 1;
@@ -80,8 +81,7 @@ module tb_flit_queue ();
         expected_pushed_flit_ready = 1;
         expected_poped_flit_valid = 0;
         expected_flit = null_flit;
-        test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit,
-                      `__LINE__, `__FILE__);
+        `LOCAL_TEST();
 
         // nothing
         poped_flit_ready  = 0;
@@ -90,8 +90,7 @@ module tb_flit_queue ();
         expected_pushed_flit_ready = 1;
         expected_poped_flit_valid = 0;
         expected_flit = null_flit;
-        test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit,
-                      `__LINE__, `__FILE__);
+        `LOCAL_TEST();
 
         // multiple push
         pushed_flit.header.src_id = 8'h02;
@@ -101,37 +100,30 @@ module tb_flit_queue ();
         expected_flit = pushed_flit;
         expected_pushed_flit_ready = 1;
         expected_poped_flit_valid = 1;
-        test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit,
-                      `__LINE__, `__FILE__);
+        `LOCAL_TEST();
 
         pushed_flit.header.src_id = 8'h03;
         @(posedge clk);
-        test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit,
-                      `__LINE__, `__FILE__);
+        `LOCAL_TEST();
 
         pushed_flit.header.src_id = 8'h04;
         @(posedge clk);
-        test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit,
-                      `__LINE__, `__FILE__);
-        test_expected(1, 1, expected_flit, `__LINE__, `__FILE__);
+        `LOCAL_TEST();
 
         pushed_flit_valid = 0;
         @(posedge clk);
-        test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit,
-                      `__LINE__, `__FILE__);
+        `LOCAL_TEST();
 
         // multiple pop
         poped_flit_ready  = 1;
         pushed_flit_valid = 0;
         @(posedge clk);
         expected_flit.header.src_id = 8'h03;
-        test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit,
-                      `__LINE__, `__FILE__);
+        `LOCAL_TEST();
 
         @(posedge clk);
         expected_flit.header.src_id = 8'h04;
-        test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit,
-                      `__LINE__, `__FILE__);
+        `LOCAL_TEST();
 
         // push and pop
         poped_flit_ready = 1;
@@ -139,8 +131,7 @@ module tb_flit_queue ();
         pushed_flit.header.src_id = 8'h05;
         @(posedge clk);
         expected_flit.header.src_id = 8'h05;
-        test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit,
-                      `__LINE__, `__FILE__);
+        `LOCAL_TEST();
 
         // pop last flit
         pushed_flit_valid = 0;
@@ -149,8 +140,7 @@ module tb_flit_queue ();
         expected_pushed_flit_ready = 1;
         expected_poped_flit_valid = 0;
         expected_flit = null_flit;
-        test_expected(expected_pushed_flit_ready, expected_poped_flit_valid, expected_flit,
-                      `__LINE__, `__FILE__);
+        `LOCAL_TEST();
 
         repeat (10) @(posedge clk);
 

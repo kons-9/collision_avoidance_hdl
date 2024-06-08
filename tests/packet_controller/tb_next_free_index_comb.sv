@@ -11,6 +11,7 @@
 `include "test_utils.svh"
 
 import types::*;
+`define NUM_ENTRIES 8
 
 module tb_next_free_index_comb;
 
@@ -24,22 +25,43 @@ module tb_next_free_index_comb;
     end
 
     // input
-    logic input_template;
+    logic [7:0] free_index_bitmap;
 
     // output
-    logic output_template;
-    logic output_not_template;
-    assign output_template = input_template;
-    assign output_not_template = ~input_template;
+    logic next_free_index_valid;
+    logic [$clog2(`NUM_ENTRIES)-1:0] next_free_index;
+
+    next_free_index_comb #(
+        .NUM_ENTRIES(`NUM_ENTRIES)
+    ) next_free_index_comb (
+        .free_index_bitmap(free_index_bitmap),
+        .next_free_index_valid(next_free_index_valid),
+        .next_free_index(next_free_index)
+    );
 
     // expected
-    logic expected_template;
+    logic expected_valid;
+    logic [$clog2(`NUM_ENTRIES)-1:0] expected_index;
 
-`define LOCAL_TEST(__unused_args) \
-@(posedge clk); \
-`TEST_EXPECTED(expected_template, output_template, "output_template"); \
-`TEST_UNEXPECTED(expected_template, output_not_template, "output_not_template"); \
-#1;
+    int counter = 0;
+
+    task automatic LOCAL_TEST(string file , int line);
+        $display("counter = %0d", counter);
+        counter++;
+        @(posedge clk);
+        `TEST_EXPECTED(expected_valid, next_free_index_valid, "next_free_index_valid", file, line);
+        if (expected_valid) begin
+            `TEST_EXPECTED(expected_index, next_free_index, "next_free_index", file, line);
+        end
+        #1;
+    endtask
+
+    `define TEST_TMP(file=`__FILE__, line=`__LINE__) \
+        $display("file = %0s, line = %0d", file, line); \
+        $display("file = %0s, line = %0d", file, line); \
+        $display("file = %0s, line = %0d", file, line); \
+        $display("file = %0s, line = %0d", file, line); \
+        $display("file = %0s, line = %0d", file, line); \
 
     initial begin
         `TEST_START("tb_next_free_index_comb.log")
@@ -50,9 +72,26 @@ module tb_next_free_index_comb;
         @(posedge clk);
         rst_n = 1;
 
-        input_template = 1;
-        expected_template = 1;
-        `LOCAL_TEST
+        free_index_bitmap = 8'b00000001;
+        expected_valid = 1;
+        expected_index = 0;
+        LOCAL_TEST(`__FILE__, `__LINE__);
+
+        `TEST_TMP();
+
+        free_index_bitmap = 8'b00000010;
+        expected_valid = 1;
+        expected_index = 1;
+        LOCAL_TEST(`__FILE__, `__LINE__);
+
+        free_index_bitmap = 8'b00000011;
+        expected_valid = 1;
+        expected_index = 1;
+        LOCAL_TEST(`__FILE__, `__LINE__);
+
+        free_index_bitmap = 8'b00000000;
+        expected_valid = 0;
+        LOCAL_TEST(`__FILE__, `__LINE__);
 
         repeat (10) @(posedge clk);
 
