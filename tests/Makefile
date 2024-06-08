@@ -46,7 +46,7 @@ tb_flit_queue: $(TEST_DIR)/tb_flit_queue.log
 	cat $< | tail -n 1 | grep -q "Test Passed" || (cat $< && echo -n "\033[0m" && exit 1)
 	echo "\033[0;32m* Flit Queue test passed\033[0m"
 
-$(TEST_DIR)/tb_flit_queue.log: $(TB_DIR)/utils/tb_flit_queue.sv $(SRC_DIR)/utils/flit_queue.sv
+$(TEST_DIR)/tb_flit_queue.log: $(TB_DIR)/utils/tb_flit_queue.sv $(SRC_DIR)/utils/flit_queue.sv $(SRC_DIR)/utils/queue.sv
 	./xsim_test.sh $(basename $(notdir $@)) $(SRC_DIR) $(TB_DIR) $(TEST_DIR) $(INCLUDE_DIR) $(TB_INCLUDE_DIR) $^
 
 tb_receive_controller_comb: $(TEST_DIR)/tb_receive_controller_comb.log

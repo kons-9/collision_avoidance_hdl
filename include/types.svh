@@ -72,7 +72,7 @@ package types;
     typedef struct packed {
         node_id_t global_src_id;  // 8 bits
         node_id_t global_dst_id;  // 8 bits
-        logic [7:0] length;  // 8 bits
+        flit_num_t length;  // 8 bits
         logic [7:0] vc;  // 8 bits
         message_header_t header;  // 12 bits
         logic [3:0] option_flag;  // 4 bits

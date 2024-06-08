@@ -1,10 +1,18 @@
 module router (
-    input logic clk,
+    input logic nocclk,
     input logic rst_n,
-    input types::flit_t flit_in,
 
-    output types::flit_t flit_out,
-    output logic is_global_destination_self
+    input types::flit_t transfered_flit,
+    input logic transfered_flit_valid,
+    output logic transfered_flit_ready,
+    input types::flit_t transfered_head_flit,
+
+    input logic noc_to_cpu_pushed_flit_ready,
+    output types::flit_t noc_to_cpu_pushed_flit,
+    output logic noc_to_cpu_pushed_flit_valid,
+    input logic forwarded_flit_ready,
+    output types::flit_t forwarded_flit,
+    output logic forwarded_flit_valid
 );
     // MUST TODO
 
