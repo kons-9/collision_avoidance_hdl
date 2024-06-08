@@ -9,12 +9,11 @@ template_tb_file="$this_dir/template/tb_template.sv"
 # ex) src/utils/counter.sv -> tests/utils/tb_counter.sv
 
 # srcファイルのリストを取得
-# src_files=$(find src -name "*.sv")
-src_file="$this_dir/../src/utils/flit_queue.sv"
-module_name=$(basename $src_file | sed -e "s/\.sv//")
+src_files=$(\find $this_dir/../src -name "*.sv")
 
-for src_file in $src_files; do
+while read src_file; do
     # テストファイル名を生成
+    module_name=$(basename $src_file | sed -e "s/\.sv//")
     test_file=$(echo $src_file | sed -e "s/src/tests/" -e "s/$module_name\.sv/tb_$module_name.sv/")
 
     # もし存在しなければテストファイルを生成
@@ -29,4 +28,4 @@ for src_file in $src_files; do
     # テストファイルの中身を書き換える
     # TEMPLATE -> テストファイル名
     sed -i -e "s/TEMPLATE/$module_name/g" $test_file
-done
+done <<< $src_files

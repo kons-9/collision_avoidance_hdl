@@ -17,7 +17,7 @@ UNIT_TEST_TB_FILES:=$(addprefix $(TB_DIR)/,$(UNIT_TEST_TB_FILENAMES))
 UNIT_TEST_SRC_FILES:=$(addprefix $(SRC_DIR)/,$(subst tb_,,$(UNIT_TEST_TB_FILENAMES)))
 UNIT_TEST_TARGETS:=$(subst .sv,,$(subst $(SRC_DIR)/,,$(UNIT_TEST_SRC_FILES)))
 
-.PHONY: all prepare clean tb_calculate_checksum_comb tb_flit_queue tb_receive_controller_comb tb_next_free_index_comb tb_packet_buffer tb_packet_transfer_buffer tb_router tb_packet_controller
+.PHONY: all prepare clean gen_test tb_calculate_checksum_comb tb_flit_queue tb_receive_controller_comb tb_next_free_index_comb tb_packet_buffer tb_packet_transfer_buffer tb_router tb_packet_controller
 .SILENT: tb_calculate_checksum_comb tb_flit_queue all prepare start tb_receive_controller_comb tb_next_free_index_comb tb_packet_buffer tb_packet_transfer_buffer tb_router tb_packet_controller
 
 all: prepare start tb_calculate_checksum_comb tb_flit_queue tb_receive_controller_comb tb_next_free_index_comb tb_packet_buffer tb_packet_transfer_buffer tb_router tb_packet_controller
@@ -32,6 +32,10 @@ start: prepare
 
 prepare: $(TEST_DIR) xsim_test.sh
 	chmod u+x xsim_test.sh
+
+gen_test:
+	echo "Generate test"
+	./gen_test.sh
 
 # utils/tb_calculate_checksum_comb.sv
 # utils/tb_flit_queue.sv

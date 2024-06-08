@@ -1,5 +1,7 @@
 # use veridater for ci testing
 
+.PHONY: test_all gen_test
+
 SRC:=
 
 test_all: 
