@@ -30,9 +30,9 @@ int __fd;
         `RESET_COLOR \
     end
 
-`define TEST_UNEXPECTED(unexpected, actual, message, file = __FILE__, line = __LINE__) \
+`define TEST_UNEXPECTED(unexpected, actual, message, file = `__FILE__, line = `__LINE__) \
     __number_of_test++; \
-    assert (expected != actual) else begin \
+    assert (unexpected != actual) else begin \
         __failed_count++; \
         `RED_COLOR \
         $display("Error: %s, actual = %0d, unexpected = %0d(file:%0s line:%0d)", message, actual, unexpected, file, line); \

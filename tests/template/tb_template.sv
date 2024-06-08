@@ -1,9 +1,10 @@
 `include "types.svh"
+`include "packet_types.svh"
 `include "test_utils.svh"
 
 import types::*;
 
-module tb_template ();
+module tb_TEMPLATE;
 
     timeunit 10ps; timeprecision 10ps;
 
@@ -33,9 +34,9 @@ module tb_template ();
     #1
 
     initial begin
-        `TEST_START("tb_template.log")
-        $dumpfile("tb_template.vcd");
-        $dumpvars(0, tb_template);
+        `TEST_START("tb_TEMPLATE.log")
+        $dumpfile("tb_TEMPLATE.vcd");
+        $dumpvars(0, tb_TEMPLATE);
         @(posedge clk);
         rst_n = 0;
         @(posedge clk);

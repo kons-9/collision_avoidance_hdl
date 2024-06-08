@@ -7,6 +7,7 @@
 //     output logic [$clog2(NUM_ENTRIES)-1:0] next_free_index
 // );
 `include "types.svh"
+`include "packet_types.svh"
 `include "test_utils.svh"
 
 import types::*;
@@ -34,16 +35,16 @@ module tb_next_free_index_comb;
     // expected
     logic expected_template;
 
-    `define LOCAL_TEST(__unused_args) \
-    @(posedge clk); \
-    `TEST_EXPECTED(expected_template, output_template, "output_template"); \
-    `TEST_UNEXPECTED(expected_template, output_not_template, "output_not_template"); \
-    #1
+`define LOCAL_TEST(__unused_args) \
+@(posedge clk); \
+`TEST_EXPECTED(expected_template, output_template, "output_template"); \
+`TEST_UNEXPECTED(expected_template, output_not_template, "output_not_template"); \
+#1;
 
     initial begin
-        `TEST_START("tb_template.log")
-        $dumpfile("tb_template.vcd");
-        $dumpvars(0, tb_template);
+        `TEST_START("tb_next_free_index_comb.log")
+        $dumpfile("tb_next_free_index_comb.vcd");
+        $dumpvars(0, tb_next_free_index_comb);
         @(posedge clk);
         rst_n = 0;
         @(posedge clk);

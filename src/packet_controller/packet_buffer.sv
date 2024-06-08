@@ -2,9 +2,7 @@
 `include "packet_types.svh"
 
 module packet_buffer #(
-    parameter int PACKET_BUFFER_NUM_ENTRIES = 8,
-    parameter int MAX_NUM_OF_FLIT = 8,
-    parameter int EXPIRE_TIME = 100
+    parameter int PACKET_BUFFER_NUM_ENTRIES = 8
 ) (
     input logic nocclk,
     input logic rst_n,
@@ -17,6 +15,7 @@ module packet_buffer #(
     output packet_types::packet_element_t transfered_packet,
     output logic transfered_packet_valid
 );
+    import packet_types::EXPIRE_TIME;
     parameter int PACKET_BUFFER_INDEX_WIDTH = $clog2(PACKET_BUFFER_NUM_ENTRIES);
 
     packet_types::packet_element_t packet_buffer[PACKET_BUFFER_NUM_ENTRIES];

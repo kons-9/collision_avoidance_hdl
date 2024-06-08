@@ -12,15 +12,15 @@ TB_INCLUDE_DIR=$(TB_DIR)/include
 # SIM_TOOL:=vvp
 # BUILD_OPTION=-g2012 -I$(INCLUDE_DIR) -t$(SIM_TOOL)
 
-UNIT_TEST_TB_FILENAMES:=utils/tb_calculate_checksum_comb.sv utils/tb_flit_queue.sv tb_receive_controller_comb.sv
+UNIT_TEST_TB_FILENAMES:=utils/tb_calculate_checksum_comb.sv utils/tb_flit_queue.sv tb_receive_controller_comb.sv packet_controller/tb_next_free_index_comb.sv packet_controller/tb_packet_buffer.sv packet_controller/tb_packet_transfer_buffer.sv packet_controller/tb_router.sv packet_controller/tb_packet_controller.sv
 UNIT_TEST_TB_FILES:=$(addprefix $(TB_DIR)/,$(UNIT_TEST_TB_FILENAMES))
 UNIT_TEST_SRC_FILES:=$(addprefix $(SRC_DIR)/,$(subst tb_,,$(UNIT_TEST_TB_FILENAMES)))
 UNIT_TEST_TARGETS:=$(subst .sv,,$(subst $(SRC_DIR)/,,$(UNIT_TEST_SRC_FILES)))
 
-.PHONY: all prepare clean tb_calculate_checksum_comb tb_flit_queue tb_receive_controller_comb
-.SILENT: tb_calculate_checksum_comb tb_flit_queue all prepare start tb_receive_controller_comb
+.PHONY: all prepare clean tb_calculate_checksum_comb tb_flit_queue tb_receive_controller_comb tb_next_free_index_comb tb_packet_buffer tb_packet_transfer_buffer tb_router tb_packet_controller
+.SILENT: tb_calculate_checksum_comb tb_flit_queue all prepare start tb_receive_controller_comb tb_next_free_index_comb tb_packet_buffer tb_packet_transfer_buffer tb_router tb_packet_controller
 
-all: prepare start tb_calculate_checksum_comb tb_flit_queue tb_receive_controller_comb
+all: prepare start tb_calculate_checksum_comb tb_flit_queue tb_receive_controller_comb tb_next_free_index_comb tb_packet_buffer tb_packet_transfer_buffer tb_router tb_packet_controller
 	echo -n "\033[0;32m"
 	echo "-------------All tests passed-------------"
 	echo -n "\033[0m"
