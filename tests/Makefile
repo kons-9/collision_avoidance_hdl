@@ -33,6 +33,9 @@ start: prepare
 prepare: $(TEST_DIR) xsim_test.sh
 	chmod u+x xsim_test.sh
 
+# utils/tb_calculate_checksum_comb.sv
+# utils/tb_flit_queue.sv
+
 tb_calculate_checksum_comb: $(TEST_DIR)/tb_calculate_checksum_comb.log
 	echo -n "\033[0;31m"
 	cat $< | tail -n 1 | grep -q "Test Passed" || (cat $< && echo -n "\033[0m" && exit 1)
@@ -49,12 +52,61 @@ tb_flit_queue: $(TEST_DIR)/tb_flit_queue.log
 $(TEST_DIR)/tb_flit_queue.log: $(TB_DIR)/utils/tb_flit_queue.sv $(SRC_DIR)/utils/flit_queue.sv $(SRC_DIR)/utils/queue.sv
 	./xsim_test.sh $(basename $(notdir $@)) $(SRC_DIR) $(TB_DIR) $(TEST_DIR) $(INCLUDE_DIR) $(TB_INCLUDE_DIR) $^
 
+# tb_receive_controller_comb.sv
+
 tb_receive_controller_comb: $(TEST_DIR)/tb_receive_controller_comb.log
 	echo -n "\033[0;31m"
 	cat $< | tail -n 1 | grep -q "Test Passed" || (cat $< && echo -n "\033[0m" && exit 1)
 	echo "\033[0;32m* Receive Controller Comb test passed\033[0m"
 
 $(TEST_DIR)/tb_receive_controller_comb.log: $(TB_DIR)/tb_receive_controller_comb.sv $(SRC_DIR)/receive_controller_comb.sv
+	./xsim_test.sh $(basename $(notdir $@)) $(SRC_DIR) $(TB_DIR) $(TEST_DIR) $(INCLUDE_DIR) $(TB_INCLUDE_DIR) $^
+
+# packet_controller/tb_next_free_index_comb.sv
+# packet_controller/tb_packet_buffer.sv
+# packet_controller/tb_packet_transfer_buffer.sv
+# packet_controller/tb_router.sv
+# packet_controller/tb_packet_controller.sv
+
+tb_next_free_index_comb: $(TEST_DIR)/tb_next_free_index_comb.log
+	echo -n "\033[0;31m"
+	cat $< | tail -n 1 | grep -q "Test Passed" || (cat $< && echo -n "\033[0m" && exit 1)
+	echo "\033[0;32m* Next Free Index Comb test passed\033[0m"
+
+$(TEST_DIR)/tb_next_free_index_comb.log: $(TB_DIR)/packet_controller/tb_next_free_index_comb.sv $(SRC_DIR)/packet_controller/next_free_index_comb.sv
+	./xsim_test.sh $(basename $(notdir $@)) $(SRC_DIR) $(TB_DIR) $(TEST_DIR) $(INCLUDE_DIR) $(TB_INCLUDE_DIR) $^
+
+tb_packet_buffer: $(TEST_DIR)/tb_packet_buffer.log
+	echo -n "\033[0;31m"
+	cat $< | tail -n 1 | grep -q "Test Passed" || (cat $< && echo -n "\033[0m" && exit 1)
+	echo "\033[0;32m* Packet Buffer test passed\033[0m"
+
+$(TEST_DIR)/tb_packet_buffer.log: $(TB_DIR)/packet_controller/tb_packet_buffer.sv $(SRC_DIR)/packet_controller/packet_buffer.sv
+	./xsim_test.sh $(basename $(notdir $@)) $(SRC_DIR) $(TB_DIR) $(TEST_DIR) $(INCLUDE_DIR) $(TB_INCLUDE_DIR) $^
+
+
+tb_packet_transfer_buffer: $(TEST_DIR)/tb_packet_transfer_buffer.log
+	echo -n "\033[0;31m"
+	cat $< | tail -n 1 | grep -q "Test Passed" || (cat $< && echo -n "\033[0m" && exit 1)
+	echo "\033[0;32m* Packet Transfer Buffer test passed\033[0m"
+
+$(TEST_DIR)/tb_packet_transfer_buffer.log: $(TB_DIR)/packet_controller/tb_packet_transfer_buffer.sv $(SRC_DIR)/packet_controller/packet_transfer_buffer.sv
+	./xsim_test.sh $(basename $(notdir $@)) $(SRC_DIR) $(TB_DIR) $(TEST_DIR) $(INCLUDE_DIR) $(TB_INCLUDE_DIR) $^
+
+tb_router: $(TEST_DIR)/tb_router.log
+	echo -n "\033[0;31m"
+	cat $< | tail -n 1 | grep -q "Test Passed" || (cat $< && echo -n "\033[0m" && exit 1)
+	echo "\033[0;32m* Router test passed\033[0m"
+
+$(TEST_DIR)/tb_router.log: $(TB_DIR)/packet_controller/tb_router.sv $(SRC_DIR)/packet_controller/router.sv $(SRC_DIR)/packet_controller/packet_buffer.sv $(SRC_DIR)/packet_controller/packet_transfer_buffer.sv $(SRC_DIR)/packet_controller/next_free_index_comb.sv
+	./xsim_test.sh $(basename $(notdir $@)) $(SRC_DIR) $(TB_DIR) $(TEST_DIR) $(INCLUDE_DIR) $(TB_INCLUDE_DIR) $^
+
+tb_packet_controller: $(TEST_DIR)/tb_packet_controller.log
+	echo -n "\033[0;31m"
+	cat $< | tail -n 1 | grep -q "Test Passed" || (cat $< && echo -n "\033[0m" && exit 1)
+	echo "\033[0;32m* Packet Controller test passed\033[0m"
+
+$(TEST_DIR)/tb_packet_controller.log: $(TB_DIR)/packet_controller/tb_packet_controller.sv $(SRC_DIR)/packet_controller/packet_controller.sv $(SRC_DIR)/packet_controller/next_free_index_comb.sv $(SRC_DIR)/packet_controller/packet_buffer.sv $(SRC_DIR)/packet_controller/packet_transfer_buffer.sv $(SRC_DIR)/packet_controller/router.sv
 	./xsim_test.sh $(basename $(notdir $@)) $(SRC_DIR) $(TB_DIR) $(TEST_DIR) $(INCLUDE_DIR) $(TB_INCLUDE_DIR) $^
 
 $(TEST_DIR):
