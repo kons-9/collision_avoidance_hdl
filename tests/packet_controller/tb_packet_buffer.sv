@@ -1,23 +1,5 @@
 `include "types.svh"
 `include "packet_types.svh"
-
-// module packet_buffer #(
-//     parameter int PACKET_BUFFER_NUM_ENTRIES = 8,
-//     parameter int MAX_NUM_OF_FLIT = 8,
-//     parameter int EXPIRE_TIME = 100
-// ) (
-//     input logic nocclk,
-//     input logic rst_n,
-//
-//     input types::flit_t next_flit,
-//     input logic next_flit_valid,
-//     output logic next_flit_ready,
-//
-//     input logic transfered_packet_completed,
-//     output packet_types::packet_element_t transfered_packet,
-//     output logic transfered_packet_valid
-// );
-`include "types.svh"
 `include "test_utils.svh"
 
 import types::*;
@@ -49,12 +31,12 @@ module tb_packet_buffer;
     @(posedge clk); \
     `TEST_EXPECTED(expected_template, output_template, "output_template"); \
     `TEST_UNEXPECTED(expected_template, output_not_template, "output_not_template"); \
-    #1
+    #1;
 
     initial begin
-        `TEST_START("tb_template.log")
-        $dumpfile("tb_template.vcd");
-        $dumpvars(0, tb_template);
+        `TEST_START("tb_packet_buffer.log")
+        $dumpfile("tb_packet_buffer.vcd");
+        $dumpvars(0, tb_packet_buffer);
         @(posedge clk);
         rst_n = 0;
         @(posedge clk);

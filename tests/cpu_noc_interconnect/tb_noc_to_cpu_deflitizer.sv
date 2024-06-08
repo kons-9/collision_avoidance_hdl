@@ -31,7 +31,7 @@ module tb_noc_to_cpu_deflitizer;
     @(posedge clk); \
     `TEST_EXPECTED(expected_template, output_template, "output_template"); \
     `TEST_UNEXPECTED(expected_template, output_not_template, "output_not_template"); \
-    #1
+    #1;
 
     initial begin
         `TEST_START("tb_noc_to_cpu_deflitizer.log")

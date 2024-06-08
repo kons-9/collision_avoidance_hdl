@@ -16,21 +16,23 @@ module tb_make_ack_comb;
     end
 
     // input
-    logic input_template;
+    types::flit_t flit_in;
 
     // output
-    logic output_template;
-    logic output_not_template;
-    assign output_template = input_template;
-    assign output_not_template = ~input_template;
+    types::flit_t flit_out;
+
+    make_ack_comb make_ack_comb (
+        .flit_in (flit_in),
+        .flit_out(flit_out)
+    );
 
     // expected
-    logic expected_template;
+    types::flit_t expected_flit_out;
+
 
     `define LOCAL_TEST(__unused_args) \
     @(posedge clk); \
-    `TEST_EXPECTED(expected_template, output_template, "output_template"); \
-    `TEST_UNEXPECTED(expected_template, output_not_template, "output_not_template"); \
+    `TEST_EXPECTED(expected_flit_out, flit_out, "flit_out"); \
     #1
 
     initial begin
@@ -42,8 +44,15 @@ module tb_make_ack_comb;
         @(posedge clk);
         rst_n = 1;
 
-        input_template = 1;
-        expected_template = 1;
+        flit_in = 0;
+        expected_flit_out = 0;
+        expected_flit_out.header.is_ack = 1;
+        `LOCAL_TEST
+        flit_in.header.src_id = 1;
+        expected_flit_out.header.dst_id = 1;
+        `LOCAL_TEST
+        flit_in.header.dst_id = 2;
+        expected_flit_out.header.src_id = 2;
         `LOCAL_TEST
 
         repeat (10) @(posedge clk);

@@ -1,23 +1,9 @@
 `include "types.svh"
 `include "packet_types.svh"
+`include "test_utils.svh"
 
-// 完了したパケットの送信を担当する
-// module packet_transfer_buffer (
-//     input logic nocclk,
-//     input logic rst_n,
-//
-//     input packet_types::packet_element_t transfered_packet,
-//     input logic transfered_packet_valid,
-//     // 転送が完了したら、indexをfreeするために使う
-//     // 1clkで消費される
-//     output logic transfered_packet_completed,
-//
-//     input logic transfered_flit_ready,
-//     output logic transfered_flit_valid,
-//     output types::flit_t transfered_flit,
-//     output types::flit_t transfered_head_flit
-//
-// );
+import types::*;
+
 module tb_packet_transfer_buffer;
 
     timeunit 10ps; timeprecision 10ps;
@@ -45,12 +31,12 @@ module tb_packet_transfer_buffer;
     @(posedge clk); \
     `TEST_EXPECTED(expected_template, output_template, "output_template"); \
     `TEST_UNEXPECTED(expected_template, output_not_template, "output_not_template"); \
-    #1
+    #1;
 
     initial begin
-        `TEST_START("tb_template.log")
-        $dumpfile("tb_template.vcd");
-        $dumpvars(0, tb_template);
+        `TEST_START("tb_packet_transfer_buffer.log")
+        $dumpfile("tb_packet_transfer_buffer.vcd");
+        $dumpvars(0, tb_packet_transfer_buffer);
         @(posedge clk);
         rst_n = 0;
         @(posedge clk);

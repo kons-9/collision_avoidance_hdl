@@ -108,7 +108,7 @@ module packet_buffer #(
                         // timerの更新
                         packet_buffer[i].timer <= packet_buffer[i].timer + 1;
                     end
-                end else if (free_index_reset && free_index_valid && free_index == i) begin
+                end else if (free_index_ready && free_index_valid && free_index == i) begin
                     // comming head flit
                     // new entry
                     packet_buffer[free_index].timer <= 0;
@@ -121,7 +121,6 @@ module packet_buffer #(
     // flit 挿入
     always_ff @(posedge nocclk or negedge rst_n) begin
         if (!rst_n) begin
-            num_of_packet_buffer <= 0;
         end else begin
             if (is_next_flit_head) begin
                 // head
@@ -138,7 +137,7 @@ module packet_buffer #(
                 end
             end else if (is_next_flit_body) begin
                 // body
-                if (next_flit_valid && next_flit_ready && next_packet_buffer_index_valid) begin
+                if (next_flit_valid && next_flit_ready && next_packet_index_valid) begin
                     if (next_packet.counter == next_flit_num) begin
                         next_packet.counter <= next_packet.counter + 1;
                         next_packet.tail_index <= next_packet.tail_index + 1;
@@ -149,7 +148,7 @@ module packet_buffer #(
                 end
             end else if (is_next_flit_tail) begin
                 // tail
-                if (next_flit_valid && next_flit_ready && next_packet_buffer_index_valid) begin
+                if (next_flit_valid && next_flit_ready && next_packet_index_valid) begin
                     if (next_packet.counter == next_flit_num) begin
                         next_packet.counter <= next_packet.counter + 1;
                         next_packet.tail_index <= next_packet.tail_index + 1;

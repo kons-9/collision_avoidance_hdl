@@ -1,20 +1,5 @@
-// module packet_controller (
-//     input logic nocclk,
-//     input logic rst_n,
-//
-//     input types::flit_t next_flit,
-//     input logic next_flit_valid,
-//     output logic next_flit_ready,
-//
-//     input logic noc_to_cpu_pushed_flit_ready,
-//     output logic noc_to_cpu_pushed_flit_valid,
-//     output types::flit_t noc_to_cpu_pushed_flit,
-//
-//     input logic forwarded_flit_ready,
-//     output logic forwarded_flit_valid,
-//     output types::flit_t forwarded_flit
-// );
 `include "types.svh"
+`include "packet_types.svh"
 `include "test_utils.svh"
 
 import types::*;
@@ -46,12 +31,12 @@ module tb_packet_controller;
     @(posedge clk); \
     `TEST_EXPECTED(expected_template, output_template, "output_template"); \
     `TEST_UNEXPECTED(expected_template, output_not_template, "output_not_template"); \
-    #1
+    #1;
 
     initial begin
-        `TEST_START("tb_template.log")
-        $dumpfile("tb_template.vcd");
-        $dumpvars(0, tb_template);
+        `TEST_START("tb_packet_controller.log")
+        $dumpfile("tb_packet_controller.vcd");
+        $dumpvars(0, tb_packet_controller);
         @(posedge clk);
         rst_n = 0;
         @(posedge clk);

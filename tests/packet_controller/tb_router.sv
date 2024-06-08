@@ -1,25 +1,11 @@
 `include "types.svh"
+`include "packet_types.svh"
 `include "test_utils.svh"
 
 import types::*;
-// module router (
-//     input logic nocclk,
-//     input logic rst_n,
-//
-//     input types::flit_t transfered_flit,
-//     input logic transfered_flit_valid,
-//     output logic transfered_flit_ready,
-//     input types::flit_t transfered_head_flit,
-//
-//     input logic noc_to_cpu_pushed_flit_ready,
-//     output types::flit_t noc_to_cpu_pushed_flit,
-//     output logic noc_to_cpu_pushed_flit_valid,
-//     input logic forwarded_flit_ready,
-//     output types::flit_t forwarded_flit,
-//     output logic forwarded_flit_valid
-// );
+
 module tb_router;
-    // MUST TODO
+
     timeunit 10ps; timeprecision 10ps;
 
     // generate clk
@@ -45,12 +31,12 @@ module tb_router;
     @(posedge clk); \
     `TEST_EXPECTED(expected_template, output_template, "output_template"); \
     `TEST_UNEXPECTED(expected_template, output_not_template, "output_not_template"); \
-    #1
+    #1;
 
     initial begin
-        `TEST_START("tb_template.log")
-        $dumpfile("tb_template.vcd");
-        $dumpvars(0, tb_template);
+        `TEST_START("tb_router.log")
+        $dumpfile("tb_router.vcd");
+        $dumpvars(0, tb_router);
         @(posedge clk);
         rst_n = 0;
         @(posedge clk);
@@ -65,4 +51,5 @@ module tb_router;
         `TEST_RESULT
         $finish(0);
     end
+
 endmodule
