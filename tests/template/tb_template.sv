@@ -27,7 +27,7 @@ module tb_TEMPLATE;
     // expected
     logic expected_template;
 
-    `define LOCAL_TEST(file = `__FILE__, line = `__LINE__) __local_test(__unused_args, file, line);
+    `define LOCAL_TEST(file = `__FILE__, line = `__LINE__) __local_test(file, line);
 
     task automatic __local_test(string file, int line);
         @(posedge clk);

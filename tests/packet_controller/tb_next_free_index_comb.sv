@@ -56,13 +56,6 @@ module tb_next_free_index_comb;
         #1;
     endtask
 
-    `define TEST_TMP(file=`__FILE__, line=`__LINE__) \
-        $display("file = %0s, line = %0d", file, line); \
-        $display("file = %0s, line = %0d", file, line); \
-        $display("file = %0s, line = %0d", file, line); \
-        $display("file = %0s, line = %0d", file, line); \
-        $display("file = %0s, line = %0d", file, line); \
-
     initial begin
         `TEST_START("tb_next_free_index_comb.log")
         $dumpfile("tb_next_free_index_comb.vcd");
@@ -76,8 +69,6 @@ module tb_next_free_index_comb;
         expected_valid = 1;
         expected_index = 0;
         LOCAL_TEST(`__FILE__, `__LINE__);
-
-        `TEST_TMP();
 
         free_index_bitmap = 8'b00000010;
         expected_valid = 1;
