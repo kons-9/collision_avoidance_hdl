@@ -12,42 +12,120 @@ module packet_transfer_buffer (
     // 1clkで消費される
     output logic transfered_packet_completed,
 
+    input packet_types::packet_element_t cpu_transfered_packet,
+    input logic cpu_transfered_packet_valid,
+    output logic cpu_transfered_packet_completed,
+
     input logic transfered_flit_ready,
     output logic transfered_flit_valid,
     output types::flit_t transfered_flit,
     output types::flit_t transfered_head_flit
-
 );
+    // TODO: timeout制御必要かな？
+    //
+    typedef enum logic [1:0] {
+        IDLE,
+        SENDING_PACKET,
+        SENDING_CPU_TRANSFERED_PACKET
+    } state_t;
+    state_t state;
+
     types::flit_num_t current_flit_num;
-    types::flit_num_t next_flit_num = current_flit_num + 1;
-    logic end_of_packet = transfered_packet.tail_index == next_flit_num;
-
-    assign transfered_packet_completed = end_of_packet & transfered_packet_valid;
-    assign transfered_flit_valid = transfered_packet_valid & !transfered_packet_completed;
-    assign transfered_flit = transfered_packet.flit[current_flit_num];
-    assign transfered_head_flit = transfered_packet.flit[0];
-
-    logic is_sending_packet;
-
-    always_ff @(posedge nocclk) begin
-        if (rst_n) begin
-            is_sending_packet <= 0;
-        end else begin
-            if (transfered_flit_ready & transfered_flit_valid) begin
-                if (is_sending_packet) begin
-                    if (end_of_packet) begin
-                        is_sending_packet <= 0;
-                    end
-                    current_flit_num <= next_flit_num;
-                end else begin
-                    current_flit_num <= 0;
-                    is_sending_packet <= 1;
-                end
+    types::flit_num_t next_flit_num;
+    logic is_end_of_packet;
+    always_comb begin
+        next_flit_num = current_flit_num + 1;
+        case (state)
+            SENDING_PACKET: begin
+                is_end_of_packet = transfered_packet.tail_index == next_flit_num;
+                cpu_transfered_packet_completed = 0;
+                transfered_packet_completed = is_end_of_packet & transfered_packet_valid;
+                transfered_flit_valid = transfered_packet_valid && (transfered_packet.tail_index > current_flit_num);
+                transfered_flit = transfered_packet.buffer[current_flit_num];
+                transfered_head_flit = transfered_packet.buffer[0];
             end
+            SENDING_CPU_TRANSFERED_PACKET: begin
+                is_end_of_packet = cpu_transfered_packet.tail_index == next_flit_num;
+                cpu_transfered_packet_completed = is_end_of_packet & cpu_transfered_packet_valid;
+                transfered_packet_completed = 0;
+                transfered_flit_valid = cpu_transfered_packet_valid && (cpu_transfered_packet.tail_index > current_flit_num);
+                transfered_flit = cpu_transfered_packet.buffer[current_flit_num];
+                transfered_head_flit = cpu_transfered_packet.buffer[0];
+            end
+            default: begin
+                is_end_of_packet = 0;
+                cpu_transfered_packet_completed = 0;
+                transfered_packet_completed = 0;
+                transfered_flit_valid = 0;
+                transfered_flit = 0;
+                transfered_head_flit = 0;
+            end
+        endcase
+    end
+    // update counter
+    always_ff @(posedge nocclk) begin
+        if (!rst_n) begin
+            current_flit_num <= 0;
+        end else begin
+            case (state)
+                IDLE: begin
+                    current_flit_num <= 0;
+                end
+                SENDING_PACKET: begin
+                    if (transfered_flit_ready & transfered_flit_valid) begin
+                        if (is_end_of_packet) begin
+                            current_flit_num <= 0;
+                        end else begin
+                            current_flit_num <= next_flit_num;
+                        end
+                    end
+                end
+                SENDING_CPU_TRANSFERED_PACKET: begin
+                    if (transfered_flit_ready & transfered_flit_valid) begin
+                        current_flit_num <= next_flit_num;
+                        if (is_end_of_packet) begin
+                            current_flit_num <= 0;
+                        end else begin
+                            current_flit_num <= next_flit_num;
+                        end
+                    end
+                end
+                default: begin
+                end
+            endcase
         end
     end
 
-
+    // update state
+    always_ff @(posedge nocclk or negedge rst_n) begin
+        if (!rst_n) begin
+            state <= IDLE;
+        end else begin
+            case (state)
+                IDLE: begin
+                    // 優先度はtransfered_packet
+                    if (transfered_packet_valid) begin
+                        state <= SENDING_PACKET;
+                    end else if (cpu_transfered_packet_valid) begin
+                        state <= SENDING_CPU_TRANSFERED_PACKET;
+                    end
+                end
+                SENDING_PACKET: begin
+                    if (is_end_of_packet) begin
+                        state <= IDLE;
+                    end
+                end
+                SENDING_CPU_TRANSFERED_PACKET: begin
+                    if (is_end_of_packet) begin
+                        state <= IDLE;
+                    end
+                end
+                default: begin
+                    state <= IDLE;
+                end
+            endcase
+        end
+    end
 
 
 endmodule

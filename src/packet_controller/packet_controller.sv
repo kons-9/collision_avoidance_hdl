@@ -7,6 +7,10 @@ module packet_controller (
     input logic next_flit_valid,
     output logic next_flit_ready,
 
+    input types::flit_t cpu_to_noc_pushed_flit_valid,
+    input types::flit_t cpu_to_noc_pushed_flit,
+    output logic cpu_to_noc_pushed_flit_ready,
+
     input logic noc_to_cpu_pushed_flit_ready,
     output logic noc_to_cpu_pushed_flit_valid,
     output types::flit_t noc_to_cpu_pushed_flit,
@@ -20,7 +24,10 @@ module packet_controller (
     packet_types::packet_element_t transfered_packet;
     logic transfered_packet_valid;
 
-    packet_buffer packet_buffer (
+    // interdevice_flitをpacketに変換する
+    packet_buffer #(
+        .PACKET_BUFFER_NUM_ENTRIES(8)
+    ) packet_buffer (
         .nocclk(nocclk),
         .rst_n(rst_n),
         .next_flit(next_flit),
@@ -30,6 +37,25 @@ module packet_controller (
         .transfered_packet_completed(transfered_packet_completed),
         .transfered_packet(transfered_packet),
         .transfered_packet_valid(transfered_packet_valid)
+    );
+
+    // cpu_to_noc_pushed_flitをpacketに変換する
+    logic cpu_transfered_packet_completed;
+    packet_types::packet_element_t cpu_transfered_packet;
+    logic cpu_transfered_packet_valid;
+    packet_buffer #(
+        // 比較的小さなバッファで良い or TODO: 上のバッファと共有するでもいいかも
+        .PACKET_BUFFER_NUM_ENTRIES(2)
+    ) cpu_to_noc_packet_buffer (
+        .nocclk(nocclk),
+        .rst_n(rst_n),
+        .next_flit(cpu_to_noc_pushed_flit),
+        .next_flit_valid(cpu_to_noc_pushed_flit_valid),
+        .next_flit_ready(cpu_to_noc_pushed_flit_ready),
+
+        .transfered_packet_completed(cpu_transfered_packet_completed),
+        .transfered_packet(cpu_transfered_packet),
+        .transfered_packet_valid(cpu_transfered_packet_valid)
     );
 
     logic transfered_flit_ready;
@@ -44,6 +70,9 @@ module packet_controller (
         .transfered_packet(transfered_packet),
         .transfered_packet_valid(transfered_packet_valid),
         .transfered_packet_completed(transfered_packet_completed),
+        .cpu_transfered_packet(cpu_transfered_packet),
+        .cpu_transfered_packet_valid(cpu_transfered_packet_valid),
+        .cpu_transfered_packet_completed(cpu_transfered_packet_completed),
 
         .transfered_flit_ready(transfered_flit_ready),
         .transfered_flit_valid(transfered_flit_valid),

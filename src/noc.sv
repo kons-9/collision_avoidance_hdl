@@ -197,9 +197,13 @@ module noc (
     packet_controller packet_controller (
         .nocclk(nocclk),
         .rst_n(rst_n),
-        .flit_in(interdevice_rx_flit),
-        .flit_in_valid(packet_buffer_valid),
-        .flit_in_ready(packet_buffer_ready),
+        .next_flit(interdevice_rx_flit),
+        .next_flit_valid(interdevice_rx_valid),
+        .next_flit_ready(interdevice_rx_ready),
+        .cpu_to_noc_pushed_flit_valid(cpu_to_noc_pushed_flit_valid),
+        .cpu_to_noc_pushed_flit(cpu_to_noc_pushed_flit),
+        .cpu_to_noc_pushed_flit_ready(cpu_to_noc_pushed_flit_ready),
+
         .noc_to_cpu_pushed_flit_ready(noc_to_cpu_pushed_flit_ready),
         .noc_to_cpu_pushed_flit_valid(noc_to_cpu_pushed_flit_valid),
         .noc_to_cpu_pushed_flit(noc_to_cpu_pushed_flit),
@@ -260,9 +264,6 @@ module noc (
         .forwarded_flit(forwarded_poped_flit),
         .forwarded_flit_valid(forwarded_poped_flit_valid),
         .forwarded_flit_ready(forwarded_poped_flit_ready),
-        .cpu_to_noc_flit(cpu_to_noc_poped_flit),
-        .cpu_to_noc_flit_valid(cpu_to_noc_poped_flit_valid),
-        .cpu_to_noc_flit_ready(cpu_to_noc_poped_flit_ready),
 
         .flit_out_ready(interdevice_tx_ready),
         .flit_out(interdevice_tx_flit),

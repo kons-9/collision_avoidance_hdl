@@ -50,7 +50,6 @@ module tb_packet_buffer;
         `TEST_EXPECTED(a.is_complete, b.is_complete, "is_complete", file, line);
         `TEST_EXPECTED(a.packet_id, b.packet_id, "packet_id", file, line);
         `TEST_EXPECTED(a.timer, b.timer, "timer", file, line);
-        `TEST_EXPECTED(a.counter, b.counter, "counter", file, line);
         `TEST_EXPECTED(a.tail_index, b.tail_index, "tail_index", file, line);
         for (int i = 0; i < 8; i++) begin
             `TEST_EXPECTED(a.buffer[i], b.buffer[i], $sformatf("buffer[%0d]", i), file, line);
@@ -67,15 +66,20 @@ module tb_packet_buffer;
         #1;
     endtask
 
+    task automatic wait_1clk();
+        repeat (1) @(posedge clk);
+        #1;
+    endtask
+
     `define LOCAL_TEST(file = `__FILE__, line = `__LINE__) __local_test(file, line);
 
     initial begin
         `TEST_START("tb_packet_buffer.log")
         $dumpfile("tb_packet_buffer.vcd");
         $dumpvars(0, tb_packet_buffer);
-        @(posedge clk);
+        wait_1clk();
         rst_n = 0;
-        @(posedge clk);
+        wait_1clk();
         rst_n = 1;
 
         next_flit = 0;
@@ -87,7 +91,7 @@ module tb_packet_buffer;
         next_flit.header.flit_id.packet_id = 0;
         next_flit_valid = 1;
 
-        @(posedge clk);
+        wait_1clk();
         expected_next_flit_ready = 1;
         expected_transfered_packet_valid = 0;
         expected_transfered_packet.buffer[0] = next_flit;
@@ -98,7 +102,7 @@ module tb_packet_buffer;
         next_flit.header.flit_id.packet_id = 0;
         next_flit_valid = 1;
 
-        @(posedge clk);
+        wait_1clk();
         expected_next_flit_ready = 1;
         expected_transfered_packet_valid = 0;
         expected_transfered_packet.buffer[1] = next_flit;
@@ -109,24 +113,22 @@ module tb_packet_buffer;
         next_flit.header.flit_id.packet_id = 0;
         next_flit_valid = 1;
 
-        @(posedge clk);
-        #1;
+        wait_1clk();
         next_flit_valid = 0;
         expected_next_flit_ready = 1;
         expected_transfered_packet_valid = 1;
         expected_transfered_packet.is_complete = 1;
         expected_transfered_packet.packet_id = 0;
         expected_transfered_packet.timer = 0;
-        expected_transfered_packet.counter = 3;
         expected_transfered_packet.tail_index = 3;
         expected_transfered_packet.buffer[2] = next_flit;
         `LOCAL_TEST();
 
-        repeat (10) @(posedge clk);
+        repeat (10) wait_1clk();
         // 引き出さなければ、次のパケットが入っても、transfered_packetは変わらない
         `LOCAL_TEST();
 
-        repeat (10) @(posedge clk);
+        repeat (10) wait_1clk();
 
         `TEST_RESULT
         $finish(0);

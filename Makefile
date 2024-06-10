@@ -5,7 +5,7 @@
 SRC:=
 
 test_all: 
-	make -C tests all
+	make -C tests all -j8
 
 gen_test:
 	make -C tests gen_test

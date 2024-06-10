@@ -56,13 +56,6 @@ module tx_buffer_selecter_comb (
                 waiting_ack_buffer_ready = 0;
                 flit_out = forwarding_flit;
                 flit_out_valid = 1;
-            end else if (cpu_to_noc_flit_valid) begin
-                ack_flit_ready = 0;
-                forwarding_flit_ready = 0;
-                cpu_to_noc_flit_ready = 1;
-                waiting_ack_buffer_ready = 0;
-                flit_out = cpu_to_noc_flit;
-                flit_out_valid = 1;
             end
         end
 

@@ -27,29 +27,33 @@ module tb_TEMPLATE;
     // expected
     logic expected_template;
 
+    task automatic wait_1clk();
+        repeat (1) @(posedge clk);
+        #1;
+    endtask
+
     `define LOCAL_TEST(file = `__FILE__, line = `__LINE__) __local_test(file, line);
 
     task automatic __local_test(string file, int line);
-        @(posedge clk);
+        #1;
         `TEST_EXPECTED(expected_template, output_template, "output_template", file, line);
         `TEST_UNEXPECTED(expected_template, output_not_template, "output_not_template", file, line);
-        #1;
     endtask
 
     initial begin
         `TEST_START("tb_TEMPLATE.log")
         $dumpfile("tb_TEMPLATE.vcd");
         $dumpvars(0, tb_TEMPLATE);
-        @(posedge clk);
+        wait_1clk();
         rst_n = 0;
-        @(posedge clk);
+        wait_1clk();
         rst_n = 1;
 
         input_template = 1;
         expected_template = 1;
         `LOCAL_TEST();
 
-        repeat (10) @(posedge clk);
+        repeat (10) wait_1clk();
 
         `TEST_RESULT
         $finish(0);

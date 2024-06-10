@@ -146,7 +146,6 @@ module packet_buffer #(
                     assert (free_index_bitmap[free_index] == 1);
                     packet_buffer[free_index].is_complete <= 0;
                     packet_buffer[free_index].packet_id <= next_flit.header.flit_id.packet_id;
-                    packet_buffer[free_index].counter <= 1;
                     packet_buffer[free_index].tail_index <= 1;
                     packet_buffer[free_index].buffer[0] <= next_flit;
                 end else begin
@@ -155,8 +154,7 @@ module packet_buffer #(
             end else if (is_next_flit_body) begin
                 // body
                 if (next_flit_valid && next_flit_ready && next_packet_index_valid) begin
-                    if (packet_buffer[next_packet_buffer_index].counter == next_flit_num) begin
-                        packet_buffer[next_packet_buffer_index].counter <= packet_buffer[next_packet_buffer_index].counter + 1;
+                    if (packet_buffer[next_packet_buffer_index].tail_index == next_flit_num) begin
                         packet_buffer[next_packet_buffer_index].tail_index <= packet_buffer[next_packet_buffer_index].tail_index + 1;
                         packet_buffer[next_packet_buffer_index].buffer[packet_buffer[next_packet_buffer_index].tail_index] <= next_flit;
                     end else begin
@@ -166,8 +164,7 @@ module packet_buffer #(
             end else if (is_next_flit_tail) begin
                 // tail
                 if (next_flit_valid && next_flit_ready && next_packet_index_valid) begin
-                    if (packet_buffer[next_packet_buffer_index].counter == next_flit_num) begin
-                        packet_buffer[next_packet_buffer_index].counter <= packet_buffer[next_packet_buffer_index].counter + 1;
+                    if (packet_buffer[next_packet_buffer_index].tail_index == next_flit_num) begin
                         packet_buffer[next_packet_buffer_index].tail_index <= packet_buffer[next_packet_buffer_index].tail_index + 1;
                         packet_buffer[next_packet_buffer_index].buffer[packet_buffer[next_packet_buffer_index].tail_index] <= next_flit;
                         packet_buffer[next_packet_buffer_index].is_complete <= 1;
