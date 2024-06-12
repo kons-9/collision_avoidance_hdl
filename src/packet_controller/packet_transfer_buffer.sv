@@ -19,7 +19,8 @@ module packet_transfer_buffer (
     input logic transfered_flit_ready,
     output logic transfered_flit_valid,
     output types::flit_t transfered_flit,
-    output types::flit_t transfered_head_flit
+    output types::flit_t transfered_head_flit,
+    output is_flit_from_cpu
 );
     // TODO: timeout制御必要かな？
     //
@@ -35,6 +36,13 @@ module packet_transfer_buffer (
     logic is_end_of_packet;
     always_comb begin
         next_flit_num = current_flit_num + 1;
+        is_end_of_packet = 0;
+        cpu_transfered_packet_completed = 0;
+        transfered_packet_completed = 0;
+        transfered_flit_valid = 0;
+        transfered_flit = 0;
+        transfered_head_flit = 0;
+        is_flit_from_cpu = 0;
         case (state)
             SENDING_PACKET: begin
                 is_end_of_packet = transfered_packet.tail_index == next_flit_num;
@@ -51,14 +59,9 @@ module packet_transfer_buffer (
                 transfered_flit_valid = cpu_transfered_packet_valid && (cpu_transfered_packet.tail_index > current_flit_num);
                 transfered_flit = cpu_transfered_packet.buffer[current_flit_num];
                 transfered_head_flit = cpu_transfered_packet.buffer[0];
+                is_flit_from_cpu = 1;
             end
             default: begin
-                is_end_of_packet = 0;
-                cpu_transfered_packet_completed = 0;
-                transfered_packet_completed = 0;
-                transfered_flit_valid = 0;
-                transfered_flit = 0;
-                transfered_head_flit = 0;
             end
         endcase
     end

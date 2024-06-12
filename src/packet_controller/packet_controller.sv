@@ -62,6 +62,7 @@ module packet_controller (
     logic transfered_flit_valid;
     types::flit_t transfered_flit;
     types::flit_t transfered_head_flit;
+    logic is_flit_from_cpu;
 
     // 完成しているパケットの送信を担当する
     packet_transfer_buffer packet_transfer_buffer (
@@ -77,7 +78,8 @@ module packet_controller (
         .transfered_flit_ready(transfered_flit_ready),
         .transfered_flit_valid(transfered_flit_valid),
         .transfered_flit(transfered_flit),
-        .transfered_head_flit(transfered_head_flit)  // used for routing
+        .transfered_head_flit(transfered_head_flit),  // used for routing
+        .is_flit_from_cpu(is_flit_from_cpu)
     );
 
     router router (
@@ -88,6 +90,7 @@ module packet_controller (
         .transfered_flit_valid(transfered_flit_valid),
         .transfered_flit_ready(transfered_flit_ready),
         .transfered_head_flit(transfered_head_flit),
+        .is_flit_from_cpu(is_flit_from_cpu),
 
         .noc_to_cpu_pushed_flit_ready(noc_to_cpu_pushed_flit_ready),
         .noc_to_cpu_pushed_flit(noc_to_cpu_pushed_flit),

@@ -13,6 +13,15 @@ package packet_types;
         logic [$clog2(MAX_NUM_OF_FLIT)-1:0] tail_index;
         types::flit_t buffer[MAX_NUM_OF_FLIT];
     } packet_element_t;
+
+    typedef struct {
+        logic valid[$bits(types::node_id_t)];
+        types::node_id_t routing_table[$bits(types::node_id_t)];
+        logic this_node_valid;
+        types::node_id_t this_node_id;
+        logic parent_valid;
+        types::node_id_t parent_node_id;
+    } routing_table_t;
 endpackage
 
 `endif

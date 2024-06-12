@@ -1,5 +1,6 @@
 `ifndef TYPES_SVH
 `define TYPES_SVH
+`include "system_types.svh"
 package types;
     //////////////////////////////////////////////////////////////////////
     // noc configuration
@@ -45,7 +46,7 @@ package types;
         HEAD,
         BODY,
         TAIL,
-        NOPE
+        SYSTEM
     } flit_type_t;
     typedef logic [7:0] node_id_t;
     typedef logic [7:0] packet_id_t;
@@ -66,8 +67,9 @@ package types;
 
     // flit payload 72 bits
     typedef enum logic [11:0] {
-        H_ACK = 0,
-        H_NORMAL = 1
+        H_NORMAL = 0,
+        H_SYSTEM = 1
+        // user defined
     } message_header_t;
     typedef struct packed {
         node_id_t global_src_id;  // 8 bits
@@ -85,13 +87,14 @@ package types;
         logic [71:0] data;  // 72 bits
     } tail_t;
     typedef struct packed {
-        logic [71:0] undefined;  // 72 bits
-    } nope_t;
+        system_types::system_header_t header;  // 16 bits
+        system_types::system_payload_t payload;  // 56 bits
+    } system_t;
     typedef union packed {
         head_t head;
         body_t body;
         tail_t tail;
-        nope_t nope;
+        system_t system;
     } flit_payload_t;
 
     // checksum 16 bits
@@ -109,6 +112,7 @@ package types;
         checksum_t checksum;  // 16 bits
     } flit_t;
 
-
+    parameter int FLIT_NUM_WIDTH = 8;
+    parameter node_id_t BROADCAST_ID = ((1 << $bits(node_id_t)) - 1);
 endpackage
 `endif
