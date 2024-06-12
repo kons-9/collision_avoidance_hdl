@@ -25,10 +25,15 @@ module packet_buffer #(
     logic is_next_flit_head;
     logic is_next_flit_body;
     logic is_next_flit_tail;
+    logic is_next_flit_system;
+    logic is_next_flit_last;
     always_comb begin
-        is_next_flit_head = next_flit.header.flittype === types::HEAD;
-        is_next_flit_body = next_flit.header.flittype === types::BODY;
-        is_next_flit_tail = next_flit.header.flittype === types::TAIL;
+        is_next_flit_head   = next_flit.header.flittype === types::HEAD;
+        is_next_flit_body   = next_flit.header.flittype === types::BODY;
+        is_next_flit_tail   = next_flit.header.flittype === types::TAIL;
+        is_next_flit_system = next_flit.header.flittype === types::SYSTEM;
+        // last flit is tail flit or system flit
+        is_next_flit_last   = is_next_flit_tail | is_next_flit_system;
     end
     types::flit_num_t  next_flit_num;
     types::packet_id_t next_packet_id;
@@ -64,14 +69,27 @@ module packet_buffer #(
     end
 
     logic pushed_ready;
+    logic [PACKET_BUFFER_INDEX_WIDTH-1:0] completed_index;
+    logic completed_index_valid;
+    always_comb begin
+        completed_index = 0;
+        completed_index_valid = 0;
+        if (is_system_flit) begin
+            conpleted_index = free_index;
+            completed_index_valid = free_index_valid;
+        end else if (is_next_flit_tail) begin
+            completed_index = transfered_packet_index;
+            completed_index_valid = next_flit_valid & is_next_flit_last;
+        end
+    end
     queue #(
         .NUM_ENTRIES(PACKET_BUFFER_NUM_ENTRIES),
         .DATA_WIDTH (PACKET_BUFFER_INDEX_WIDTH)
     ) completed_index_queue (
         .clk(nocclk),
         .rst_n(rst_n),
-        .pushed_element(next_packet_buffer_index),
-        .pushed_valid(next_packet_index_valid & is_next_flit_tail),
+        .pushed_element(completed_index),
+        .pushed_valid(completed_index_valid),
         .pushed_ready(pushed_ready),  // theoretically, always 1
 
         // 転送が完了したら、completed indexから取り出す
@@ -124,7 +142,7 @@ module packet_buffer #(
                         packet_buffer[i].timer <= packet_buffer[i].timer + 1;
                     end
                 end else if (i == free_index && free_index_ready && free_index_valid) begin
-                    // comming head flit
+                    // comming head flit or system flit
                     assert (free_index_bitmap[i] == 1);
                     assert (is_next_flit_head | !next_flit_valid);
                     // new entry
@@ -145,9 +163,9 @@ module packet_buffer #(
                 if (free_index_valid && free_index_ready) begin
                     assert (free_index_bitmap[free_index] == 1);
                     packet_buffer[free_index].is_complete <= 0;
-                    packet_buffer[free_index].packet_id <= next_flit.header.flit_id.packet_id;
-                    packet_buffer[free_index].tail_index <= 1;
-                    packet_buffer[free_index].buffer[0] <= next_flit;
+                    packet_buffer[free_index].packet_id   <= next_flit.header.flit_id.packet_id;
+                    packet_buffer[free_index].tail_index  <= 1;
+                    packet_buffer[free_index].buffer[0]   <= next_flit;
                 end else begin
                     // error: no free buffer
                 end
@@ -174,10 +192,17 @@ module packet_buffer #(
                 end else begin
                     // error: no packet index
                 end
-            end else begin
-                // nope flit
-                // system flitとして来ることが想定される
-                // 今のところ、何もしない
+            end else if (is_next_flit_system) begin
+                // system flit
+                if (free_index_valid && free_index_ready) begin
+                    assert (free_index_bitmap[free_index] == 1);
+                    packet_buffer[free_index].is_complete <= 1;
+                    packet_buffer[free_index].packet_id   <= next_flit.header.flit_id.packet_id;
+                    packet_buffer[free_index].tail_index  <= 1;
+                    packet_buffer[free_index].buffer[0]   <= next_flit;
+                end else begin
+                    // error: no free buffer
+                end
             end
         end
     end
