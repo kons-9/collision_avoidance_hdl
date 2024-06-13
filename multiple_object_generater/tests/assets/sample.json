@@ -1,0 +1,64 @@
+{
+    "number_of_instances": 4,
+    "number_of_events": 2,
+    "events": [
+        {
+            "timer": 100,
+            "instances": [
+                {
+                    "instance_name": 0,
+                    "neighbor": [
+                        1,2,3
+                    ]
+                },
+                {
+                    "instance_name": 1,
+                    "neighbor": [
+                        0
+                    ]
+                },
+                {
+                    "instance_name": 2,
+                    "neighbor": [
+                        0
+                    ]
+                },
+                {
+                    "instance_name": 3,
+                    "neighbor": [
+                        0
+                    ]
+                }
+            ]
+        }, 
+        {
+            "timer": 200,
+            "instances": [
+                {
+                    "instance_name": 0,
+                    "neighbor": [
+                        1,2
+                    ]
+                },
+                {
+                    "instance_name": 1,
+                    "neighbor": [
+                        0,3
+                    ]
+                },
+                {
+                    "instance_name": 2,
+                    "neighbor": [
+                        0,3
+                    ]
+                },
+                {
+                    "instance_name": 3,
+                    "neighbor": [
+                        1,2
+                    ]
+                }
+            ]
+        }
+    ]
+}
