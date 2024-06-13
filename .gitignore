@@ -2,6 +2,7 @@ vivado
 build
 *.vcd
 vivado*
+tmp*
 
 
 svls.log

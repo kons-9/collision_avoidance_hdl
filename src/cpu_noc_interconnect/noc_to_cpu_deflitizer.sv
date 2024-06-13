@@ -16,33 +16,33 @@ module noc_to_cpu_deflitizer (
     output logic data_out_valid
 );
 
-  logic [127:0] raw_flit_to_cpu;
-  logic [  1:0] flit_to_cpu_position;
-  assign data_out = raw_flit_to_cpu[flit_to_cpu_position*32+:32];
+    logic [127:0] raw_flit_to_cpu;
+    logic [  1:0] flit_to_cpu_position;
+    assign data_out = raw_flit_to_cpu[flit_to_cpu_position*32+:32];
 
-  always_ff @(posedge nocclk or negedge rst_n) begin
-    if (!rst_n) begin
-      raw_flit_to_cpu <= 0;
-      poped_flit_ready <= 1;
-      data_out_valid <= 0;
-      flit_to_cpu_position <= 0;
-    end else begin
-      if (poped_flit_valid & poped_flit_ready) begin
-        // wait for poped_flit
-        raw_flit_to_cpu <= poped_flit;
-        poped_flit_ready <= 0;
-        data_out_valid <= 1;
-        flit_to_cpu_position <= 0;
-      end else if (flit_to_cpu_position === 3) begin
-        // end of sending flit
-        poped_flit_ready <= 1;
-        data_out_valid <= 0;
-        flit_to_cpu_position <= 0;
-      end else if (data_out_ready & data_out_valid) begin
-        flit_to_cpu_position <= flit_to_cpu_position + 1;
-      end
+    always_ff @(posedge nocclk or negedge rst_n) begin
+        if (!rst_n) begin
+            raw_flit_to_cpu <= 0;
+            poped_flit_ready <= 1;
+            data_out_valid <= 0;
+            flit_to_cpu_position <= 0;
+        end else begin
+            if (poped_flit_valid & poped_flit_ready) begin
+                // wait for poped_flit
+                raw_flit_to_cpu <= poped_flit;
+                poped_flit_ready <= 0;
+                data_out_valid <= 1;
+                flit_to_cpu_position <= 0;
+            end else if (flit_to_cpu_position === 3) begin
+                // end of sending flit
+                poped_flit_ready <= 1;
+                data_out_valid <= 0;
+                flit_to_cpu_position <= 0;
+            end else if (data_out_ready & data_out_valid) begin
+                flit_to_cpu_position <= flit_to_cpu_position + 1;
+            end
+        end
     end
-  end
 
 endmodule
 

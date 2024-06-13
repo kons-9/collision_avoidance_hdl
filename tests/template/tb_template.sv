@@ -1,54 +1,62 @@
 `include "types.svh"
+`include "packet_types.svh"
 `include "test_utils.svh"
 
 import types::*;
 
-module tb_template ();
+module tb_TEMPLATE;
 
-  timeunit 10ps; timeprecision 10ps;
+    timeunit 10ps; timeprecision 10ps;
 
-  // generate clk
-  bit clk = 0;
-  bit rst_n = 1;
-  always begin
-    #5 clk = ~clk;
-  end
+    // generate clk
+    bit clk = 0;
+    bit rst_n = 1;
+    always begin
+        #5 clk = ~clk;
+    end
 
-  // input
-  logic input_template;
+    // input
+    logic input_template;
 
-  // output
-  logic output_template;
-  logic output_not_template;
-  assign output_template = input_template;
-  assign output_not_template = ~input_template;
+    // output
+    logic output_template;
+    logic output_not_template;
+    assign output_template = input_template;
+    assign output_not_template = ~input_template;
 
-  // expected
-  logic expected_template;
+    // expected
+    logic expected_template;
 
-  `define LOCAL_TEST(__unused_args) \
-    @(posedge clk); \
-    `TEST_EXPECTED(expected_template, output_template, "output_template"); \
-    `TEST_UNEXPECTED(expected_template, output_not_template, "output_not_template"); \
-    #1
+    task automatic wait_1clk();
+        repeat (1) @(posedge clk);
+        #1;
+    endtask
 
-  initial begin
-    `TEST_START("tb_template.log")
-    $dumpfile("tb_template.vcd");
-    $dumpvars(0, tb_template);
-    @(posedge clk);
-    rst_n = 0;
-    @(posedge clk);
-    rst_n = 1;
+    `define LOCAL_TEST(file = `__FILE__, line = `__LINE__) __local_test(file, line);
 
-    input_template = 1;
-    expected_template = 1;
-    `LOCAL_TEST
+    task automatic __local_test(string file, int line);
+        #1;
+        `TEST_EXPECTED(expected_template, output_template, "output_template", file, line);
+        `TEST_UNEXPECTED(expected_template, output_not_template, "output_not_template", file, line);
+    endtask
 
-    repeat (10) @(posedge clk);
+    initial begin
+        `TEST_START("tb_TEMPLATE.log")
+        $dumpfile("tb_TEMPLATE.vcd");
+        $dumpvars(0, tb_TEMPLATE);
+        wait_1clk();
+        rst_n = 0;
+        wait_1clk();
+        rst_n = 1;
 
-    `TEST_RESULT
-    $finish(0);
-  end
+        input_template = 1;
+        expected_template = 1;
+        `LOCAL_TEST();
+
+        repeat (10) wait_1clk();
+
+        `TEST_RESULT
+        $finish(0);
+    end
 
 endmodule

@@ -1,9 +1,16 @@
 # use veridater for ci testing
 
+.PHONY: test_all gen_test clean
+
 SRC:=
 
 test_all: 
-	make -C tests all
+	make -C tests all -j8
 
+gen_test:
+	make -C tests gen_test
+
+clean:
+	rm -rf build/*
 
 

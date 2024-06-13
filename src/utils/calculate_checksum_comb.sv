@@ -6,19 +6,15 @@ module calculate_checksum_comb (
     output types::flit_t flit_out
 );
 
-  types::checksum_t flit_checksum;
-  assign flit_checksum = flit_in.checksum;
+    types::checksum_t flit_checksum;
+    assign flit_checksum = flit_in.checksum;
 
-  // MUST TODO
-  always_comb begin
-    // TODO チェックサムを計算する
-    checksum = 0;
-  end
+    // MUST TODO
+    always_comb begin
+        // TODO チェックサムを計算する
+        checksum = 0;
+    end
 
-  assign is_valid = flit_checksum === checksum;
-  assign flit_out = {
-    flit_in.header,
-    flit_in.payload,
-    checksum
-  };
+    assign is_valid = flit_checksum === checksum;
+    assign flit_out = {flit_in.header, flit_in.payload, checksum};
 endmodule
