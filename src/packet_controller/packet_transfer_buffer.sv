@@ -20,7 +20,7 @@ module packet_transfer_buffer (
     output logic transfered_flit_valid,
     output types::flit_t transfered_flit,
     output types::flit_t transfered_head_flit,
-    output is_flit_from_cpu
+    output logic is_flit_from_cpu
 );
     // TODO: timeout制御必要かな？
     //

@@ -28,7 +28,7 @@ module system_flit_comb (
 );
     logic is_broadcast;
 
-    logic [$bits(types::system_payload_t)-1:0] payload;
+    system_types::system_payload_t payload;
     always_comb begin
         payload = flit_in.payload.system.payload;
     end
@@ -43,7 +43,7 @@ module system_flit_comb (
         system_flit_valid = 0;
         is_system_flit_self = 0;
         case (flit_in.payload.system.header)
-            types::S_PARENT_REQUEST_FROM_NEIGHBOR: begin
+            system_types::S_PARENT_REQUEST_FROM_NEIGHBOR: begin
                 if (is_flit_from_cpu) begin
                     // 親リクエストを送信
                     // ブロードキャスト
@@ -61,14 +61,14 @@ module system_flit_comb (
                         is_system_flit_self = 0;
                         flit_out.header.src_id = routing_table.this_node_id;
                         flit_out.header.dst_id = flit_in.header.src_id;
-                        flit_out.payload.system.header = types::S_PARENT_ACK_FROM_NEIGHBOR;
+                        flit_out.payload.system.header = system_types::S_PARENT_ACK_FROM_NEIGHBOR;
                     end
                 end else begin
                     // error
-                    assert (false);
+                    assert (0);
                 end
             end
-            types::S_PARENT_ACK_FROM_NEIGHBOR: begin
+            system_types::S_PARENT_ACK_FROM_NEIGHBOR: begin
                 if (temporal_id == flit_in.header.dst_id) begin
                     // 親アックを受信
                     // 親を決める。
@@ -83,21 +83,21 @@ module system_flit_comb (
                         flit_out.header.src_id = temporal_id;
                         flit_out.header.dst_id = flit_in.header.src_id;
                         flit_out.header.flittype = types::SYSTEM;
-                        flit_out.payload.system.header = types::S_JOIN_REQUEST;
+                        flit_out.payload.system.header = system_types::S_JOIN_REQUEST;
                         flit_out.payload.system.payload.join_request.parent_id = flit_in.header.src_id;
                         flit_out.payload.system.payload.join_request.random_child_id = temporal_id;
                     end
                 end else begin
                     // error
                     // this flit is made automatically
-                    assert (false);
+                    assert (0);
                 end
             end
-            types::S_JOIN_REQUEST: begin
+            system_types::S_JOIN_REQUEST: begin
                 if (is_flit_from_cpu) begin
                     // error
                     // this flit is made automatically
-                    assert (false);
+                    assert (0);
                 end else begin
                     // rootでないときはひたすら親に送る
                     if (is_root) begin
@@ -114,7 +114,7 @@ module system_flit_comb (
                         flit_out.header.src_id = 0; // root
                         flit_out.header.dst_id = flit_in.header.src_id;
                         flit_out.header.flittype = types::SYSTEM;
-                        flit_out.payload.system.header = types::S_JOIN_ACK;
+                        flit_out.payload.system.header = system_types::S_JOIN_ACK;
                         flit_out.payload.system.payload.join_ack.parent_id = flit_in.payload.system.payload.join_request.parent_id;
                         flit_out.payload.system.payload.join_ack.random_child_id = flit_in.payload.system.payload.join_request.random_child_id;
                         flit_out.payload.system.payload.join_ack.child_id = routing_id_counter;
@@ -127,35 +127,35 @@ module system_flit_comb (
                     end
                 end
             end
-            types::S_JOIN_ACK: begin
+            system_types::S_JOIN_ACK: begin
                 if (is_flit_from_cpu) begin
                     // error
                     // this flit is made automatically
-                end else if (payload.join_request.parent_id == routing_table.this_node_id) begin
+                end else if (payload.join_ack.parent_id == routing_table.this_node_id) begin
                     // ジョインアックを受信
                     system_flit_valid = 1;
                     flit_out.header.src_id = routing_table.this_node_id;
                     // 直接の親の場合、子はまだ自分のidを知らないので、random idをdstにする
-                    flit_out.header.dst_id = payload.join_request.random_child_id;
+                    flit_out.header.dst_id = payload.join_ack.random_child_id;
 
                     update_routing_table_valid = 1;
-                    update_routing_table_key = payload.join_request.child_id;
-                    update_routing_table_value = routing_table.routing_table[payload.join_request.parent_id];
-                    assert (routing_table.valid[payload.join_request.parent_id] == 1);
-                end else if (payload.join_request.random_child_id == temporal_id) begin
+                    update_routing_table_key = payload.join_ack.child_id;
+                    update_routing_table_value = routing_table.routing_table[payload.join_ack.parent_id];
+                    assert (routing_table.valid[payload.join_ack.parent_id] == 1);
+                end else if (payload.join_ack.random_child_id == temporal_id) begin
                     // this_node_idを更新
                     update_this_node_valid = 1;
-                    update_this_node_id = payload.join_request.child_id;
+                    update_this_node_id = payload.join_ack.child_id;
                     // TODO: 完了通知を送る？
                 end else begin
                     system_flit_valid = 1;
                     flit_out.header.src_id = routing_table.this_node_id;
-                    flit_out.header.dst_id = routing_table.routing_table[payload.join_request.parent_id];
+                    flit_out.header.dst_id = routing_table.routing_table[payload.join_ack.parent_id];
 
                     update_routing_table_valid = 1;
-                    update_routing_table_key = payload.join_request.child_id;
-                    update_routing_table_value = routing_table.routing_table[payload.join_request.parent_id];
-                    assert (routing_table.valid[payload.join_request.parent_id] == 1);
+                    update_routing_table_key = payload.join_ack.child_id;
+                    update_routing_table_value = routing_table.routing_table[payload.join_ack.parent_id];
+                    assert (routing_table.valid[payload.join_ack.parent_id] == 1);
                 end
             end
             default: begin

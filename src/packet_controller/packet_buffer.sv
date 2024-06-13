@@ -49,7 +49,7 @@ module packet_buffer #(
     logic [PACKET_BUFFER_INDEX_WIDTH-1:0] free_index;
     logic free_index_valid;
     always_comb begin
-        free_index_ready = is_next_flit_head & !next_packet_index_valid & next_flit_valid;
+        free_index_ready = (is_next_flit_head | is_next_flit_system) & !next_packet_index_valid & next_flit_valid;
         next_flit_ready  = free_index_valid;
     end
 
@@ -74,11 +74,11 @@ module packet_buffer #(
     always_comb begin
         completed_index = 0;
         completed_index_valid = 0;
-        if (is_system_flit) begin
-            conpleted_index = free_index;
+        if (is_next_flit_system) begin
+            completed_index = free_index;
             completed_index_valid = free_index_valid;
         end else if (is_next_flit_tail) begin
-            completed_index = transfered_packet_index;
+            completed_index = next_packet_buffer_index;
             completed_index_valid = next_flit_valid & is_next_flit_last;
         end
     end
@@ -144,7 +144,7 @@ module packet_buffer #(
                 end else if (i == free_index && free_index_ready && free_index_valid) begin
                     // comming head flit or system flit
                     assert (free_index_bitmap[i] == 1);
-                    assert (is_next_flit_head | !next_flit_valid);
+                    assert ((is_next_flit_head | is_next_flit_system )| !next_flit_valid);
                     // new entry
                     packet_buffer[i].timer <= 0;
                     free_index_bitmap[i]   <= 0;

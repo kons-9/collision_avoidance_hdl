@@ -17,7 +17,9 @@ module packet_controller (
 
     input logic forwarded_flit_ready,
     output logic forwarded_flit_valid,
-    output types::flit_t forwarded_flit
+    output types::flit_t forwarded_flit,
+
+    output types::node_id_t this_node_id
 );
 
     logic transfered_packet_completed;
@@ -97,7 +99,8 @@ module packet_controller (
         .noc_to_cpu_pushed_flit_valid(noc_to_cpu_pushed_flit_valid),
         .forwarded_flit_ready(forwarded_flit_ready),
         .forwarded_flit(forwarded_flit),
-        .forwarded_flit_valid(forwarded_flit_valid)
+        .forwarded_flit_valid(forwarded_flit_valid),
+        .this_node_id(this_node_id)
     );
 
 endmodule

@@ -209,7 +209,9 @@ module noc (
         .noc_to_cpu_pushed_flit(noc_to_cpu_pushed_flit),
         .forwarded_flit_ready(forwarded_flit_ready),
         .forwarded_flit_valid(forwarded_flit_valid),
-        .forwarded_flit(forwarded_flit)
+        .forwarded_flit(forwarded_flit),
+
+        .this_node_id(this_node_id)
     );
 
     wire forwarded_poped_flit_ready;

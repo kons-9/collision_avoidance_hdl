@@ -1,7 +1,11 @@
 `ifndef TYPES_SVH
 `define TYPES_SVH
 `include "system_types.svh"
+`include "primitive_types.svh"
 package types;
+    typedef primitive_types::node_id_t node_id_t;
+    typedef primitive_types::packet_id_t packet_id_t;
+    typedef primitive_types::flit_num_t flit_num_t;
     //////////////////////////////////////////////////////////////////////
     // noc configuration
     //////////////////////////////////////////////////////////////////////
@@ -48,9 +52,6 @@ package types;
         TAIL,
         SYSTEM
     } flit_type_t;
-    typedef logic [7:0] node_id_t;
-    typedef logic [7:0] packet_id_t;
-    typedef logic [7:0] flit_num_t;
     typedef struct packed {
         packet_id_t packet_id;
         flit_num_t  flit_num;

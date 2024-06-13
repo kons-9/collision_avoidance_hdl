@@ -1,7 +1,9 @@
 `ifndef SYSTEM_TYPES_SVH
 `define SYSTEM_TYPES_SVH
+`include "primitive_types.svh"
 package system_types;
     // system_header + system_payload = 72 bits
+    import primitive_types::*;
 
     // header 8 bits
     typedef enum logic [7:0] {
@@ -15,7 +17,7 @@ package system_types;
         S_SEARCH_FUNCTION,
         S_SEARCH_FUNCTION_ACK,
         S_DEBUG
-    } system_header_t; // 8 bits
+    } system_header_t;  // 8 bits
 
     // for payload
     typedef struct packed {
@@ -43,9 +45,9 @@ package system_types;
         logic [39:0] undefined;  // 48 bits
     } join_ack_t;
     typedef struct packed {
-        logic [7:0] function_id;  // 8 bits
+        logic [7:0]  function_id;  // 8 bits
         // undefined
-        logic [55:0] undefined;  // 56 bits
+        logic [55:0] undefined;    // 56 bits
     } search_function_t;
     typedef struct packed {
         node_id_t function_node_id;  // 8 bits
@@ -64,6 +66,7 @@ package system_types;
     typedef union packed {
         parent_request_t parent_request;
         parent_ack_t parent_ack;
+        join_ack_t join_ack;
         join_request_t join_request;
         search_function_t search_function;
         search_function_ack_t search_function_ack;
