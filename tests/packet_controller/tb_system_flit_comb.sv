@@ -91,7 +91,30 @@ module tb_system_flit_comb;
         wait_1clk();
         rst_n = 1;
 
+        // root
+        routing_table.valid[0] = 1;
+        routing_table.routing_table[0] = 0;
+        routing_table.this_node_valid = 1;
+        routing_table.this_node_id = 0;
+        routing_table.parent_valid = 0;
+        routing_table.parent_node_id = 0;
+        random_id = 1;
+        temporal_id = 1;
+        is_flit_from_cpu = 1;
+        flit_in = 0;
+        flit_in.header.flittype = types::HEAD;
+        flit_in.payload = 0;
+        flit_in.checksum = 0;
+        is_root = 1;
+        routing_id_counter = 1;
+
+        expected_system_flit_valid = 0;
         `LOCAL_TEST();
+
+        flit_in.header.flittype = types::SYSTEM;
+        // TODO
+        `LOCAL_TEST();
+
 
         repeat (10) wait_1clk();
 
