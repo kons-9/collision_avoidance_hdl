@@ -239,8 +239,12 @@ module noc (
     waiting_ack_controller waiting_ack_controller (
         .nocclk(nocclk),
         .rst_n(rst_n),
+        .interdevice_tx_flit(interdevice_tx_flit),
+        .interdevice_tx_ready(interdevice_tx_ready),
+        .interdevice_tx_valid(interdevice_tx_valid),
         .waiting_ack_flit(interdevice_rx_flit),
         .waiting_ack_flit_valid(waiting_ack_buffer_valid),
+
         .poped_waiting_ack_flit_ready(waiting_ack_poped_flit_ready),
         .poped_waiting_ack_flit(waiting_ack_poped_flit),
         .poped_waiting_ack_flit_valid(waiting_ack_poped_flit_valid)
