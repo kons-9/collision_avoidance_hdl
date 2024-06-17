@@ -72,7 +72,7 @@ module noc (
     wire cpu_to_noc_pushed_flit_ready;
     wire cpu_to_noc_pushed_flit_valid;
     types::flit_t cpu_to_noc_pushed_flit;
-    cpu_to_noc_flitizer cpu_to_noc_flitizer1 (
+    cpu_to_noc_flitizer cpu_to_noc_flitizer0 (
         .nocclk(nocclk),
         .rst_n(rst_n),
         .data_in(data_in),
@@ -124,7 +124,7 @@ module noc (
         .poped_flit_ready(noc_to_cpu_poped_flit_ready)
     );
 
-    noc_to_cpu_deflitizer noc_to_cpu_deflitizer1 (
+    noc_to_cpu_deflitizer noc_to_cpu_deflitizer0 (
         .nocclk(nocclk),
         .rst_n(rst_n),
         .poped_flit(noc_to_cpu_poped_flit),
@@ -194,7 +194,7 @@ module noc (
     logic forwarded_flit_valid;
     types::flit_t forwarded_flit;
 
-    packet_controller packet_controller (
+    packet_controller packet_controller0 (
         .nocclk(nocclk),
         .rst_n(rst_n),
         .next_flit(interdevice_rx_flit),
@@ -236,11 +236,15 @@ module noc (
     wire waiting_ack_poped_flit_ready;
     wire waiting_ack_poped_flit_valid;
     types::flit_t waiting_ack_poped_flit;
-    waiting_ack_controller waiting_ack_controller (
+    waiting_ack_controller waiting_ack_controller0 (
         .nocclk(nocclk),
         .rst_n(rst_n),
+        .interdevice_tx_flit(interdevice_tx_flit),
+        .interdevice_tx_ready(interdevice_tx_ready),
+        .interdevice_tx_valid(interdevice_tx_valid),
         .waiting_ack_flit(interdevice_rx_flit),
         .waiting_ack_flit_valid(waiting_ack_buffer_valid),
+
         .poped_waiting_ack_flit_ready(waiting_ack_poped_flit_ready),
         .poped_waiting_ack_flit(waiting_ack_poped_flit),
         .poped_waiting_ack_flit_valid(waiting_ack_poped_flit_valid)
@@ -254,7 +258,7 @@ module noc (
     logic interdevice_tx_ready;
     types::flit_t interdevice_tx_flit;
 
-    tx_buffer_selector_comb tx_buffer_selector_comb (
+    tx_buffer_selector_comb tx_buffer_selector_comb0 (
         .nocclk(nocclk),
         .rst_n(rst_n),
         .ack_flit(ack_poped_flit),
@@ -276,7 +280,7 @@ module noc (
     //////////////////////////////
     // inter device comunication
     //////////////////////////////
-    interdevice_controller interdevice_controller (
+    interdevice_controller interdevice_controller0 (
         .cpuclk(cpuclk),
         .rst_n(rst_n),
         .this_node_id(this_node_id),
