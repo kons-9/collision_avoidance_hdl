@@ -13,7 +13,16 @@ module cpu_top (
     output wire [3:0] gpo_out,
     output wire [7:0] cml_out,
     output wire [7:0] hys_out,
-    output wire uart_tx
+    output wire uart_tx,
+
+    // for nic
+    input wire [31:0] nic_rx,
+    input wire nic_rx_en,
+    output wire nic_rx_rdy
+
+    input wire nic_tx_rdy,
+    output wire [31:0] nic_tx,
+    output wire nic_tx_en,
 );
 
     // reset
@@ -93,6 +102,11 @@ module cpu_top (
     wire [7:0] hys_data_in;
     wire [7:0] hys_data_out;
     wire [31:0] hys_value;
+
+    // NIC
+    wire [31:0] nic_rx_value;
+    wire [31:0] nic_state_value;
+
 
     // ハードウェアカウンタ
     wire [31:0] hc_value;
@@ -448,6 +462,11 @@ module cpu_top (
 		.gpo_out(hys_data_out)
     );
 
+    // NIC
+    assign nic_tx_en = ((ex_alu_result == `NIC_TX_ADDR) && ex_is_store) ? `ENABLE : `DISABLE;
+    assign nic_tx = ex_store_value;
+    assign nic_rx_rdy = ((ex_alu_result == `NIC_RX_ADDR) && ex_is_store) ? ex_store_value[0] : 1'b0;
+
 
     // hardware counter
     hardware_counter hardware_counter_0 (
@@ -495,6 +514,8 @@ module cpu_top (
     assign uart_rx_value = {23'd0, uart_rd_en, uart_rd_data};
     assign cml_value = {24'd0, cml_data_out};
     assign hys_value = {24'd0, hys_data_out};
+    assign nic_rx_value = nic_rx;
+    assign nic_state_value = {27'd0, nic_tx_rdy, nic_rx_en, nic_tx_en, nic_rx_rdy};
     
     function [31:0] load_value_sel(
         input is_load,
@@ -506,7 +527,9 @@ module cpu_top (
         input [31:0] gpi_value,
         input [31:0] gpo_value,
         input [31:0] cml_value,
-        input [31:0] hys_value
+        input [31:0] hys_value,
+        input [31:0] nic_rx_value,
+        input [31:0] nic_state_value
     );
         
         begin
@@ -527,6 +550,10 @@ module cpu_top (
                             load_value_sel = cml_value;
                         end else if (alu_result == `HYS_ADDR) begin
                             load_value_sel = hys_value;
+                        end else if (alu_result == `NIC_RX_ADDR) begin
+                            load_value_sel = nic_rx_value;
+                        end else if (alu_result == `NIC_STATE_ADDR) begin
+                            load_value_sel = nic_state_value;
                         end else begin
                             load_value_sel = {dmem_rd_data_3, dmem_rd_data_2, dmem_rd_data_1, dmem_rd_data_0};
                         end
@@ -573,7 +600,7 @@ module cpu_top (
     endfunction
 
     assign wb_load_value = load_value_sel(wb_is_load, wb_alucode, wb_alu_result, mem_rd_data[0],
-                                          mem_rd_data[1], mem_rd_data[2], mem_rd_data[3], uart_tx_value, uart_rx_value, hc_value, gpi_value, gpo_value, cml_value, hys_value);
+                                          mem_rd_data[1], mem_rd_data[2], mem_rd_data[3], uart_tx_value, uart_rx_value, hc_value, gpi_value, gpo_value, cml_value, hys_value, nic_rx_value, nic_state_value);
     
     assign wb_dstreg_value = wb_is_load ? wb_load_value : wb_alu_result;
 

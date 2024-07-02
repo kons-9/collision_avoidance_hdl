@@ -48,6 +48,11 @@
 `define CML_ADDR 32'h20060
 `define HYS_ADDR 32'h20070
 
+// address for NIC
+`define NIC_TX_ADDR 32'h20080
+`define NIC_RX_ADDR 32'h20090
+`define NIC_STATE_ADDR   32'h200A0
+
 `define ENABLE  1'b1
 `define DISABLE 1'b0
 
