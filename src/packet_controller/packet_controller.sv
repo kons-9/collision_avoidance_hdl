@@ -3,6 +3,9 @@ module packet_controller (
     input logic nocclk,
     input logic rst_n,
 
+    input types::node_id_t incoming_flit_node_id,
+    input logic incoming_flit_valid,
+
     input types::flit_t next_flit,
     input logic next_flit_valid,
     output logic next_flit_ready,
