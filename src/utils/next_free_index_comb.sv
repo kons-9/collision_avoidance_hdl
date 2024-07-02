@@ -13,7 +13,7 @@ module next_free_index_comb #(
                 next_free_index = i;
             end
         end
+        next_free_index_valid = free_index_bitmap[next_free_index];
     end
 
-    assign next_free_index_valid = free_index_bitmap[next_free_index];
 endmodule

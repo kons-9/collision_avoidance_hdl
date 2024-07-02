@@ -5,10 +5,10 @@ module router #(
     parameter logic IS_ROOT = 0,  // TODO: use ifdef?
     parameter int RANDOM_SEED = 0,
     parameter int MAX_HEARTBEAT_REQUEST_TIMER = 100,
-    parameter int MAX_EXPIRE_TIME = 500,
+    parameter int MAX_EXPIRE_TIMER = 500,
     parameter int MAX_INTERNAL_SYSTEM_TIMER = 1000,
-    parameter int MAX_NUM_OF_NEIGHBOR = 8,
-    parameter int MAX_NUM_OF_NODE = 2 ** $bits(types::node_id_t)
+    parameter int MAX_NUM_OF_NEIGHBORS = 8,
+    parameter int MAX_NUM_OF_NODES = 1 << $bits(types::node_id_t)
 ) (
     input logic nocclk,
     input logic rst_n,
@@ -427,8 +427,8 @@ module router #(
     types::node_id_t sys_invalid_id;
     logic sys_is_parent_id_invalid;
     neighbor_controller #(
-        .MAX_EXPIRE_TIME(MAX_EXPIRE_TIME),
-        .MAX_NUM_OF_NEIGHBOR(MAX_NUM_OF_NEIGHBOR)
+        .MAX_EXPIRE_TIME(MAX_EXPIRE_TIMER),
+        .MAX_NUM_OF_NEIGHBOR(MAX_NUM_OF_NEIGHBORS)
     ) neighbor_controller0 (
         .nocclk(nocclk),
         .rst_n (rst_n),
@@ -473,7 +473,7 @@ module router #(
         end
     end
     generate
-        for (genvar i = 0; i < MAX_NUM_OF_NODE; i++) begin : G_ROUTING_TABLE
+        for (genvar i = 0; i < MAX_NUM_OF_NODES; i++) begin : G_ROUTING_TABLE
             always_ff @(posedge nocclk) begin
                 if (!rst_n) begin
                     g_routing_table.valid[i] <= 0;

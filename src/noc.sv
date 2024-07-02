@@ -36,20 +36,15 @@ module noc #(
     // flitの入力と出力 for direct connection
     // flit_rx_vld, flit_tx_rdy両方のフラグがnocclkの立ち上がり時に立っていた場合、データを受け取る
     input types::flit_t flit_rx,
-    input types::flit_t flit_rx_vld,
+    input logic flit_rx_vld,
     output types::flit_t flit_tx,
-    output types::flit_t flit_tx_vld
+    output logic flit_tx_vld
 `endif
 );
 
     types::node_id_t this_node_id;
     types::noc_state_t noc_state;
 
-    types::flit_t interdevice_tx_flit;
-
-    logic interdevice_rx_rdy;
-    types::flit_t interdevice_rx_flit;
-    logic interdevice_rx_valid;
 
     // TODO: LOCKをどうするか。
     // 今回は簡単のため、bufferを共有しないようにする。
@@ -58,8 +53,8 @@ module noc #(
     // cpu to noc
     //////////////////////////////
 
-    wire cpu_to_noc_pushed_flit_ready;
-    wire cpu_to_noc_pushed_flit_valid;
+    logic cpu_to_noc_pushed_flit_ready;
+    logic cpu_to_noc_pushed_flit_valid;
     types::flit_t cpu_to_noc_pushed_flit;
     cpu_to_noc_flitizer cpu_to_noc_flitizer0 (
         .nocclk(nocclk),
@@ -74,8 +69,7 @@ module noc #(
     );
 
     types::flit_t cpu_to_noc_poped_flit;
-    wire cpu_to_noc_poped_flit_ready;
-    wire cpu_to_noc_poped_flit_ready;
+    logic cpu_to_noc_poped_flit_ready;
 
     flit_queue cpu_to_noc_buffer (
         .clk(nocclk),
@@ -189,12 +183,14 @@ module noc #(
     ) packet_controller0 (
         .nocclk(nocclk),
         .rst_n(rst_n),
+        .incoming_flit_node_id(interdevice_rx_flit.header.src_id),
+        .incoming_flit_valid(interdevice_rx_valid),
         .next_flit(interdevice_rx_flit),
-        .next_flit_valid(interdevice_rx_valid),
-        .next_flit_ready(interdevice_rx_ready),
-        .cpu_to_noc_pushed_flit_valid(cpu_to_noc_pushed_flit_valid),
-        .cpu_to_noc_pushed_flit(cpu_to_noc_pushed_flit),
-        .cpu_to_noc_pushed_flit_ready(cpu_to_noc_pushed_flit_ready),
+        .next_flit_valid(packet_buffer_valid),
+        .next_flit_ready(packet_buffer_ready),
+        .cpu_to_noc_poped_flit_valid(cpu_to_noc_poped_flit_valid),
+        .cpu_to_noc_poped_flit(cpu_to_noc_poped_flit),
+        .cpu_to_noc_poped_flit_ready(cpu_to_noc_poped_flit_ready),
 
         .noc_to_cpu_pushed_flit_ready(noc_to_cpu_pushed_flit_ready),
         .noc_to_cpu_pushed_flit_valid(noc_to_cpu_pushed_flit_valid),
@@ -225,6 +221,9 @@ module noc #(
     // waiting ack controller
     //////////////////////////////
 
+    types::flit_t interdevice_tx_flit;
+    logic interdevice_tx_valid;
+    logic interdevice_tx_ready;
     wire waiting_ack_poped_flit_ready;
     wire waiting_ack_poped_flit_valid;
     types::flit_t waiting_ack_poped_flit;
@@ -246,17 +245,11 @@ module noc #(
     // buffer selector
     //////////////////////////////
 
-    logic interdevice_tx_valid;
-    logic interdevice_tx_ready;
-    types::flit_t interdevice_tx_flit;
-
-    tx_buffer_selector_comb tx_buffer_selector_comb0 (
-        .nocclk(nocclk),
-        .rst_n(rst_n),
+    tx_buffer_selecter_comb tx_buffer_selecter_comb0 (
         .ack_flit(ack_poped_flit),
         .ack_flit_valid(ack_poped_flit_valid),
         .ack_flit_ready(ack_poped_flit_ready),
-        .waiting_ack_buffer(waiting_ack_poped_flit),
+        .waiting_ack_buffer_flit(waiting_ack_poped_flit),
         .waiting_ack_buffer_valid(waiting_ack_poped_flit_valid),
         .waiting_ack_buffer_ready(waiting_ack_poped_flit_ready),
         .forwarded_flit(forwarded_poped_flit),
@@ -280,7 +273,7 @@ module noc #(
         .interdevice_tx_valid(interdevice_tx_valid),
         .interdevice_tx_ready(interdevice_tx_ready),
 
-        .interdevice_rx_ready(interdevice_rx_rdy),
+        .interdevice_rx_ready(interdevice_rx_ready),
         .interdevice_rx_flit (interdevice_rx_flit),
         .interdevice_rx_valid(interdevice_rx_valid),
 

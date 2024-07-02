@@ -18,11 +18,11 @@ module cpu_top (
     // for nic
     input wire [31:0] nic_rx,
     input wire nic_rx_en,
-    output wire nic_rx_rdy
+    output wire nic_rx_rdy,
 
     input wire nic_tx_rdy,
     output wire [31:0] nic_tx,
-    output wire nic_tx_en,
+    output wire nic_tx_en
 );
 
     // reset

@@ -14,9 +14,10 @@ package packet_types;
         types::flit_t buffer[MAX_NUM_OF_FLIT];
     } packet_element_t;
 
+    parameter int MAX_NUM_OF_NODE = 1 << $bits(types::node_id_t);
     typedef struct {
-        logic valid[$bits(types::node_id_t)];
-        types::node_id_t routing_table[$bits(types::node_id_t)];
+        logic valid[MAX_NUM_OF_NODE];
+        types::node_id_t routing_table[MAX_NUM_OF_NODE];
         logic this_node_valid;
         types::node_id_t this_node_id;
         logic parent_valid;

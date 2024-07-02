@@ -1,4 +1,4 @@
-`include "types.sv"
+`include "types.svh"
 /// @brief CPUとの直接的なやり取りを行うモジュール
 /// @NOTE 現実装ではcpuとの通信は32bit単位で、関係のないデータを空にした128bitを分割する形で行う
 //の
@@ -31,14 +31,15 @@ module cpu_to_noc_flitizer (
     // clkの立ち上がりでdata_inがready & validの場合、データを受け取る
     always_ff @(posedge nocclk or negedge rst_n) begin
         if (!rst_n) begin
-            flit_from_cpu_position <= 0;
             sys_invalid_flit <= 0;
+            raw_flit_position <= 0;
+            raw_flit_completed <= 0;
         end else begin
             sys_invalid_flit <= sys_invalid_flit | (!is_checksum_valid & raw_flit_completed);
             if (data_in_vld & data_in_rdy & !sys_invalid_flit) begin
                 raw_flit[raw_flit_position*32+:32] <= data_in;
                 raw_flit_position <= raw_flit_position + 1;
-                raw_flit_completed <= (flit_from_cpu_position === 3);
+                raw_flit_completed <= (raw_flit_position === 3);
             end else begin
                 raw_flit_position  <= 0;
                 raw_flit_completed <= 0;
@@ -47,12 +48,12 @@ module cpu_to_noc_flitizer (
     end
 
     calculate_checksum_comb check_checksum1 (
-        .flit(raw_flit),
+        .flit_in(raw_flit),
         .is_valid(is_checksum_valid),
 
         .flit_out(pushed_flit)
     );
 
-    assign pushed_flit_valid = raw_flit_from_cpu_completed;
+    assign pushed_flit_valid = raw_flit_completed;
 
 endmodule

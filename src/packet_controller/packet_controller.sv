@@ -3,10 +3,10 @@ module packet_controller #(
     parameter logic IS_ROOT = 0,
     parameter int RANDOM_SEED = 0,
     parameter int MAX_HEARTBEAT_REQUEST_TIMER = 100,
-    parameter int MAX_EXPIRE_TIME = 500,
+    parameter int MAX_EXPIRE_TIMER = 500,
     parameter int MAX_INTERNAL_SYSTEM_TIMER = 1000,
-    parameter int MAX_NUM_OF_NEIGHBOR = 8,
-    parameter int MAX_NUM_OF_NODE = 2 ** $bits(types::node_id_t)
+    parameter int MAX_NUM_OF_NEIGHBORS = 8,
+    parameter int MAX_NUM_OF_NODES = 2 ** $bits(types::node_id_t)
 ) (
     input logic nocclk,
     input logic rst_n,
@@ -18,9 +18,9 @@ module packet_controller #(
     input logic next_flit_valid,
     output logic next_flit_ready,
 
-    input types::flit_t cpu_to_noc_pushed_flit_valid,
-    input types::flit_t cpu_to_noc_pushed_flit,
-    output logic cpu_to_noc_pushed_flit_ready,
+    input logic cpu_to_noc_poped_flit_valid,
+    input types::flit_t cpu_to_noc_poped_flit,
+    output logic cpu_to_noc_poped_flit_ready,
 
     input logic noc_to_cpu_pushed_flit_ready,
     output logic noc_to_cpu_pushed_flit_valid,
@@ -62,9 +62,9 @@ module packet_controller #(
     ) cpu_to_noc_packet_buffer (
         .nocclk(nocclk),
         .rst_n(rst_n),
-        .next_flit(cpu_to_noc_pushed_flit),
-        .next_flit_valid(cpu_to_noc_pushed_flit_valid),
-        .next_flit_ready(cpu_to_noc_pushed_flit_ready),
+        .next_flit(cpu_to_noc_poped_flit),
+        .next_flit_valid(cpu_to_noc_poped_flit_valid),
+        .next_flit_ready(cpu_to_noc_poped_flit_ready),
 
         .transfered_packet_completed(cpu_transfered_packet_completed),
         .transfered_packet(cpu_transfered_packet),

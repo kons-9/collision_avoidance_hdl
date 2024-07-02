@@ -1,9 +1,11 @@
+`include "types.svh"
+
 module random_id_generator #(
     parameter int RANDOM_SEED = 0
 ) (
     input logic nocclk,
     input logic rst_n,
-    output node_id_t random_id
+    output types::node_id_t random_id
 );
     always_ff @(posedge nocclk) begin
         if (!rst_n) begin

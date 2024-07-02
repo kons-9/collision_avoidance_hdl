@@ -1,4 +1,4 @@
-module uart_clk (
+module interdevice_uart_clk (
     input logic clk,
     input logic rst_n,
 
@@ -7,7 +7,9 @@ module uart_clk (
 
     types::uart_clk_precisision_t _uart_clk;
 
-    assign uart_clk_out = _uart_clk == 0;
+    always_comb begin
+        uart_clk_out = _uart_clk == 0;
+    end
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin

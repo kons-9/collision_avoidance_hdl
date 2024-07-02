@@ -1,5 +1,5 @@
-`include "types.sv"
-module uart_rx (
+`include "types.svh"
+module interdevice_uart_rx (
     input logic nocclk,
     input logic uart_clk,
     input logic rst_n,
@@ -18,32 +18,34 @@ module uart_rx (
     types::flit_t flit_out_current;
     logic [$clog2(types::FLIT_WIDTH+1)-1:0] flit_out_current_position;
 
-    assign flit_out_vld = rx_state == types::IDLE;
+    always_comb begin
+        flit_out_vld = rx_state == RX_IDLE;
+    end
 
     always_ff @(posedge uart_clk or negedge rst_n) begin
         if (!rst_n) begin
             flit_out_current_position <= 0;
-            rx_state <= types::NOT_RECEIVING;
+            rx_state <= RX_NOT_RECEIVING;
             flit_out_vld <= 0;
-        end else if (rx_state == types::IDLE | rx_state == types::NOT_RECEIVING) begin
+        end else if (rx_state == RX_IDLE | rx_state == RX_NOT_RECEIVING) begin
             if (!uart_rx) begin
-                rx_state <= types::DATA;
+                rx_state <= RX_DATA;
                 flit_out_current_position <= 0;
             end
-        end else if (rx_state == types::DATA) begin
+        end else if (rx_state == RX_DATA) begin
             flit_out_current[flit_out_current_position] <= uart_rx;
             flit_out_current_position <= flit_out_current_position + 1;
             if (flit_out_current_position == types::FLIT_WIDTH - 1) begin
-                rx_state <= types::END_BIT;
+                rx_state <= RX_END_BIT;
             end
-        end else if (rx_state == types::END_BIT) begin
+        end else if (rx_state == RX_END_BIT) begin
             if (!uart_rx) begin
-                rx_state <= types::IDLE;
+                rx_state <= RX_IDLE;
                 flit_out <= flit_out_current;
                 flit_out_vld <= 1;
             end else begin
                 // invalid end bit
-                rx_state <= types::NOT_RECEIVING;
+                rx_state <= RX_NOT_RECEIVING;
                 flit_out_vld <= 0;
             end
         end

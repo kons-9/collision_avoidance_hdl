@@ -1,4 +1,4 @@
-`include "types.sv"
+`include "types.svh"
 /// @brief CPUとの直接的なやり取りを行うモジュール
 /// @NOTE 現実装ではcpuとの通信は32bit単位で、関係のないデータを空にした128bitを分割する形で行う
 // @NOTE このモジュールではチェックサムの計算を行わない

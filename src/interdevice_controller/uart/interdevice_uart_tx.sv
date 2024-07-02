@@ -1,5 +1,5 @@
-`include "types.sv"
-module uart_tx (
+`include "types.svh"
+module interdevice_uart_tx (
     input logic uart_clk,
     input logic rst_n,
     input logic flit_in_vld,
@@ -25,33 +25,35 @@ module uart_tx (
     // state is only idle, sending or sending_system
     uart_tx_state_t tx_state;
 
-    assign flit_in_rdy = tx_state == types::IDLE;
+    always_comb begin
+        flit_in_rdy = tx_state == TX_IDLE;
+    end
 
     // 一回の送信でstart bit, data, end bitを送信(130bits)
     always_ff @(posedge uart_clk or negedge rst_n) begin
         if (!rst_n) begin
             flit_in_current_position <= 0;
-            tx_state <= types::IDLE;
+            tx_state <= TX_IDLE;
             uart_tx <= 1;  // idle
         end else if (flit_in_vld && flit_in_rdy) begin
             // if valid flit is received, start sending
-            tx_state <= types::START_BIT;
+            tx_state <= TX_START_BIT;
             flit_in_current <= flit_in;
             flit_in_rdy <= 0;
-        end else if (tx_state == types::START_BIT) begin
+        end else if (tx_state == TX_START_BIT) begin
             // send start bit
-            tx_state <= types::DATA;
+            tx_state <= TX_DATA;
             flit_in_current_position <= 0;
             uart_tx <= 0;
-        end else if (tx_state == types::DATA) begin
+        end else if (tx_state == TX_DATA) begin
             flit_in_current_position <= flit_in_current_position + 1;
             uart_tx <= current_bit;
             if (flit_in_current_position == types::FLIT_WIDTH - 1) begin
-                tx_state <= types::END_BIT;
+                tx_state <= TX_END_BIT;
             end
-        end else if (tx_state == types::END_BIT) begin
+        end else if (tx_state == TX_END_BIT) begin
             // send end bit
-            tx_state <= types::IDLE;
+            tx_state <= TX_IDLE;
             uart_tx  <= 0;
         end else begin
             uart_tx <= 1;  // idle
