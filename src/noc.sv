@@ -21,14 +21,6 @@ module noc (
     output logic [31:0] data_out,
     output logic data_out_vld,
 
-    // for error
-    // errorが発生した場合、signalにエラーを出力する
-    // TODO:data_outでsystem dataとして送ることによって通知することもできるが
-    // 簡便のため現在の実装はこのようにしている
-    // rst_nが立つまで、send以外の処理を行わない
-    output logic signal,
-    output types::signal_t error,
-
     // 外部機器との接続用
     // 形状自在の通信では1bitなので、uartモジュールを使うことになるが、FPGAな
     // どの実験では128bitsそのまま送信することができる。
@@ -36,21 +28,15 @@ module noc (
     // uartの入力と出力
     // 通常のuartで128ビットのデータを出力する
     input logic uart_rx,
-    output logic uart_tx,
+    output logic uart_tx
 `else
     // flitの入力と出力 for direct connection
     // flit_rx_vld, flit_tx_rdy両方のフラグがnocclkの立ち上がり時に立っていた場合、データを受け取る
     input types::flit_t flit_rx,
     input types::flit_t flit_rx_vld,
     output types::flit_t flit_tx,
-    output types::flit_t flit_tx_rdy,
+    output types::flit_t flit_tx_vld
 `endif
-
-    // for conficuration
-    // TODO: configurationはsystem dataをとして通常の送信のときに行われるが
-    // 簡便のため現在の実装はこのようにしている
-    input  logic configuration,
-    output logic current_configuration
 );
 
     types::node_id_t this_node_id;
@@ -298,10 +284,10 @@ module noc (
 `else
         .flit_rx(flit_rx),
         .flit_rx_valid(flit_rx_vld),
-        .flit_rx_ready(flit_rx_rdy),
+        .flit_rx_ready(),
         .flit_tx(flit_tx),
         .flit_tx_valid(flit_tx_vld),
-        .flit_tx_ready(flit_tx_rdy)
+        .flit_tx_ready()
 `endif
     );
 
