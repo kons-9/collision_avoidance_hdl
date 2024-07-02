@@ -26,6 +26,6 @@ module stage40 (
 
     calculate_checksum_comb calculate_checksum_comb (
         .flit_in (_flit_pre_chechsum),
-        .flit_out(out_flit),
+        .flit_out(out_flit)
     );
 endmodule

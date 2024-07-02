@@ -5,7 +5,9 @@ module router #(
     parameter logic IS_ROOT = 0,  // TODO: use ifdef?
     parameter int MAX_HEARTBEAT_REQUEST_TIMER = 100,
     parameter int MAX_EXPIRE_TIME = 500,
-    parameter int MAX_NUM_OF_NEIGHBOR = 8
+    parameter int MAX_INTERNAL_TIMER = 1000,
+    parameter int MAX_NUM_OF_NEIGHBOR = 8,
+    parameter int MAX_NUM_OF_NODE = 2 ** $bits(types::node_id_t)
 ) (
     input logic nocclk,
     input logic rst_n,
@@ -15,9 +17,10 @@ module router #(
 
     input types::flit_t transfered_flit,
     input logic transfered_flit_valid,
+    output logic transfered_flit_ready,
+
     input types::flit_t transfered_head_flit,
     input logic is_from_cpu,
-    output logic transfered_flit_ready,
 
     input logic noc_to_cpu_pushed_flit_ready,
     output types::flit_t noc_to_cpu_pushed_flit,
@@ -56,7 +59,7 @@ module router #(
     logic g_incoming_flit_valid;
     types::node_id_t g_incoming_flit_node_id;
     types::node_id_t g_this_node_id;
-    packet_types::routing_state_t g_routing_state;
+    system_types::routing_state_t g_routing_state;
     packet_types::routing_table_t g_routing_table;
 
     always_comb begin
@@ -70,6 +73,7 @@ module router #(
         end
     end
 
+    logic stage1_ready;
     always_comb begin
         transfered_flit_ready = stage1_ready & !stage1_stall;
         this_node_id = g_this_node_id;
@@ -79,7 +83,6 @@ module router #(
     /// stage 1
     /// decode head flit
     logic stage1_valid;
-    logic stage1_ready;
     logic stage2_ready;
     always_comb begin
         stage1_valid = transfered_flit_valid;
@@ -117,11 +120,10 @@ module router #(
     types::node_id_t stage1_update_routing_table_key;
     logic stage1_is_raw_global_destination_used_to_update_routing_table;
     logic stage1_update_next_state;
-    packet_types::routing_state_t stage1_next_routing_state;
+    system_types::routing_state_t stage1_next_routing_state;
 
     stage10 #(
         .MAX_HEARTBEAT_REQUEST_TIMER(MAX_HEARTBEAT_REQUEST_TIMER),
-        .MAX_INTERNAL_TIMER(MAX_INTERNAL_TIMER),
         .IS_ROOT(IS_ROOT)
     ) stage1_inst (
         .nocclk(nocclk),
@@ -196,7 +198,7 @@ module router #(
     types::node_id_t stage2_update_routing_table_key;
     logic stage2_is_raw_global_destination_used_to_update_routing_table;
     logic stage2_update_next_state;
-    packet_types::routing_state_t stage2_next_routing_state;
+    system_types::routing_state_t stage2_next_routing_state;
     // always_ff @(posedge nocclk) begin // if pipeline
     always_comb begin
         stage2_flit = stage1_flit;
@@ -281,7 +283,7 @@ module router #(
     logic stage3_normal_flit_valid_out;
     types::flit_t stage3_normal_flit_out;
     logic stage3_update_next_state;
-    packet_types::routing_state_t stage3_next_routing_state;
+    system_types::routing_state_t stage3_next_routing_state;
     logic stage3_neighbor_id_valid;  // evaluated in neighbor_controller
 
     // only for root
@@ -359,8 +361,8 @@ module router #(
     end
 
     // output
-    logic stage4_valid_flit_out;
-    types::flit_t stage4_flit_out;
+    logic stage4_flit_valid;
+    types::flit_t stage4_flit;
 
     stage40 #() stage4_inst (
         .nocclk(nocclk),
@@ -371,17 +373,15 @@ module router #(
         .in_normal_flit(stage4_normal_flit),
         .in_normal_flit_valid(stage4_normal_flit_valid),
 
-        .out_flit_valid(stage4_valid_flit_out),
-        .out_flit(stage4_flit_out)
+        .out_flit_valid(stage4_flit_valid),
+        .out_flit(stage4_flit)
     );
 
     //////////////////////////////////////////
     /// stage 5
     logic stage5_valid;
-    logic stage5_ready;
 
     always_comb begin
-        stage5_ready = !stage5_stall;
         stage5_valid = stage4_valid & !stage5_stall;
     end
 
@@ -454,15 +454,12 @@ module router #(
                 g_routing_table.this_node_valid <= 0;
             end
             g_routing_table.parent_valid <= 0;
-            for (int i = 0; i < $bits(types::node_id_t); i++) begin
-                g_routing_table.valid[i] <= 0;
-            end
         end else begin
             // update parent
             if (stage1_update_parent_valid) begin
                 g_routing_table.parent_valid   <= 1;
                 g_routing_table.parent_node_id <= stage1_update_parent_node_id;
-            end else if (stage3_is_invalid_parent) begin
+            end else if (sys_is_parent_id_invalid) begin
                 g_routing_table.parent_valid <= 0;
             end
             // update this node
@@ -470,125 +467,127 @@ module router #(
                 g_routing_table.this_node_valid <= 1;
                 g_routing_table.this_node_id <= stage1_update_this_node_id;
             end
-            if (sys_invalid_id_valid) begin
-                // 他のステージは全部止める
-                // 能動的な切断はしない
-                for (int i = 0; i < $bits(types::node_id_t); i++) begin
-                    // TODO: ここが非常に重たくなることが予想されるので、
-                    // クロックを分ける必要がある気がする
-                    if (g_routing_table.valid[i] && g_routing_table.routing_table[i] == sys_invalid_id) begin
-                        g_routing_table.valid[i] <= 0;
-                    end
-                end
-            end else if (stage3_update_routing_table_valid) begin
-                g_routing_table.valid[stage3_update_routing_table_key] <= 1;
-                if (stage3_is_raw_global_destination_used_to_update_routing_table) begin
-                    g_routing_table.routing_table[stage3_update_routing_table_key] <= stage3_global_destination;
+        end
+    end
+    generate
+        for (genvar i = 0; i < MAX_NUM_OF_NODE; i++) begin : G_ROUTING_TABLE
+            always_ff @(posedge nocclk) begin
+                if (!rst_n) begin
+                    g_routing_table.valid[i] <= 0;
                 end else begin
-                    g_routing_table.routing_table[stage3_update_routing_table_key] <= stage3_next_node;
+                    if (sys_invalid_id_valid) begin
+                        // 他のステージは全部止める
+                        // 能動的な切断はしない
+                        if (g_routing_table.valid[i] && g_routing_table.routing_table[i] == sys_invalid_id) begin
+                            g_routing_table.valid[i] <= 0;
+                        end
+                    end else if (stage3_update_routing_table_valid && stage3_update_routing_table_key == i) begin
+                        g_routing_table.valid[i] <= 1;
+                        if (stage3_is_raw_global_destination_used_to_update_routing_table) begin
+                            g_routing_table.routing_table[i] <= stage3_global_destination;
+                        end else begin
+                            g_routing_table.routing_table[i] <= stage3_next_node;
+                        end
+                    end
                 end
             end
         end
-    end
+    endgenerate
 
     /// controller
     /// routing state machine
-    logic all_stage_stall;
+    logic _all_stage_stall;
     always_comb begin
-        all_stage_stall = sys_invalid_id_valid;
-        stage1_stall = all_stage_stall;
-        stage2_stall = all_stage_stall;
-        stage3_stall = all_stage_stall;
-        stage4_stall = all_stage_stall;
-        stage5_stall = all_stage_stall;
+        _all_stage_stall = sys_invalid_id_valid;
+
+        stage1_stall = _all_stage_stall;
+        stage2_stall = _all_stage_stall;
+        stage3_stall = _all_stage_stall;
+        stage4_stall = _all_stage_stall;
+        stage5_stall = _all_stage_stall;
         case (g_routing_state)
-            INIT,
-            I_GENERATE_PARENT_REQUEST,
-            I_WAIT_PARENT_ACK,
-            I_GENERATE_JOIN_REQUEST,
-            I_WAIT_JOIN_ACK,
-            S_GENERATE_PARENT_REQUEST,
-            S_WAIT_PARENT_ACK,
-            S_GENERATE_JOIN_REQUEST,
-            S_WAIT_JOIN_ACK,
-            FATAL_ERROR: begin
-                stage1_stall = 1;
-                stage2_stall = 1;
-                stage3_stall = 1;
-                stage4_stall = 1;
-                stage5_stall = 1;
+            system_types::INIT, system_types::I_GENERATE_PARENT_REQUEST, system_types::I_GENERATE_JOIN_REQUEST, system_types::S_GENERATE_PARENT_REQUEST, system_types::S_GENERATE_JOIN_REQUEST: begin
+                stage1_stall |= 1;
+                stage2_stall |= 1;
+                stage3_stall |= 0;
+                stage4_stall |= 0;
+                stage5_stall |= 0;
             end
-            NORMAL: begin
+            system_types::FATAL_ERROR: begin
+                stage1_stall |= 1;
+                stage2_stall |= 1;
+                stage3_stall |= 1;
+                stage4_stall |= 1;
+                stage5_stall |= 1;
+            end
+            system_types::I_WAIT_PARENT_ACK, system_types::I_WAIT_JOIN_ACK, system_types::S_WAIT_PARENT_ACK, system_types::S_WAIT_JOIN_ACK, system_types::NORMAL: begin
             end
             default: begin
             end
         endcase
     end
 
+    logic [$clog2(MAX_INTERNAL_TIMER):0] _system_timer;  // used in system_flit_decoder_comb
+    logic _system_timer_rst;  // used in system_flit_generator_comb
     // update routing state
     always_ff @(posedge nocclk) begin
         if (!rst_n) begin
             if (g_is_root) begin
-                g_routing_state <= NORMAL;
+                g_routing_state <= system_types::NORMAL;
             end else begin
-                g_routing_state <= INIT;
+                g_routing_state <= system_types::INIT;
             end
         end else begin
             case (g_routing_state)
-                INIT: begin
-                    if (stage1_update_next_state) begin
-                        g_routing_state <= stage1_next_routing_state;
-                    end
+                system_types::INIT: begin
+                    g_routing_state <= system_types::I_GENERATE_PARENT_REQUEST;
                 end
-                I_GENERATE_PARENT_REQUEST: begin
+                system_types::I_GENERATE_PARENT_REQUEST, system_types::I_GENERATE_JOIN_REQUEST, system_types::S_GENERATE_PARENT_REQUEST, system_types::S_GENERATE_JOIN_REQUEST: begin
                     if (stage3_update_next_state) begin
                         g_routing_state <= stage3_next_routing_state;
                     end
                 end
-                I_WAIT_PARENT_ACK: begin
+                system_types::I_WAIT_PARENT_ACK, system_types::I_WAIT_JOIN_ACK: begin
                     if (stage1_update_next_state) begin
                         g_routing_state <= stage1_next_routing_state;
+                    end else if (_system_timer == MAX_INTERNAL_TIMER) begin
+                        g_routing_state <= system_types::I_GENERATE_PARENT_REQUEST;
                     end
                 end
-                I_GENERATE_JOIN_REQUEST: begin
-                    if (stage3_update_next_state) begin
-                        g_routing_state <= stage3_next_routing_state;
-                    end
-                end
-                I_WAIT_JOIN_ACK: begin
+                system_types::S_WAIT_PARENT_ACK, system_types::S_WAIT_JOIN_ACK: begin
                     if (stage1_update_next_state) begin
                         g_routing_state <= stage1_next_routing_state;
+                    end else if (_system_timer == MAX_INTERNAL_TIMER) begin
+                        g_routing_state <= system_types::S_GENERATE_PARENT_REQUEST;
                     end
                 end
-                S_GENERATE_PARENT_REQUEST: begin
-                    if (stage3_update_next_state) begin
-                        g_routing_state <= stage3_next_routing_state;
+                system_types::NORMAL: begin
+                    if (sys_is_parent_id_invalid) begin
+                        g_routing_state <= system_types::S_GENERATE_PARENT_REQUEST;
                     end
-                end
-                S_WAIT_PARENT_ACK: begin
-                    if (stage1_update_next_state) begin
-                        g_routing_state <= stage1_next_routing_state;
-                    end
-                end
-                S_GENERATE_JOIN_REQUEST: begin
-                    if (stage3_update_next_state) begin
-                        g_routing_state <= stage3_next_routing_state;
-                    end
-                end
-                S_WAIT_JOIN_ACK: begin
-                    if (stage1_update_next_state) begin
-                        g_routing_state <= stage1_next_routing_state;
-                    end
-                end
-                NORMAL: begin
-                end
-                FATAL_ERROR: begin
-                    g_routing_state <= FATAL_ERROR;
                 end
                 default: begin
-                    g_routing_state <= FATAL_ERROR;
+                    g_routing_state <= system_types::FATAL_ERROR;
                 end
             endcase
         end
     end
+    always_comb begin
+        case (g_routing_state)
+            system_types::I_GENERATE_PARENT_REQUEST, system_types::I_GENERATE_JOIN_REQUEST, system_types::S_GENERATE_PARENT_REQUEST, system_types::S_GENERATE_JOIN_REQUEST: begin
+                _system_timer_rst = 1;
+            end
+            default: begin
+                _system_timer_rst = 0;
+            end
+        endcase
+    end
+    always_ff @(posedge nocclk) begin
+        if (_system_timer_rst) begin
+            _system_timer <= 0;
+        end else begin
+            _system_timer <= _system_timer + 1;
+        end
+    end
+
 endmodule

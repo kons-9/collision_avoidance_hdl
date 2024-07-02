@@ -4,7 +4,7 @@
 module system_flit_generator_comb (
     input types::flit_t sys_flit,
     input logic sys_flit_valid,
-    input packet_types::routing_state_t routing_state,
+    input system_types::routing_state_t routing_state,
     input types::node_id_t global_destination_id,
     input types::node_id_t next_destination,  // culculated by routing table using global_destination
     input logic next_destination_valid,
@@ -24,7 +24,7 @@ module system_flit_generator_comb (
     output logic update_node_id_counter,  // only for root
 
     output logic next_routing_state_valid,
-    output packet_types::routing_state_t next_routing_state,
+    output system_types::routing_state_t next_routing_state,
 
     output logic flit_out_valid,
     output types::flit_t flit_out
@@ -33,81 +33,67 @@ module system_flit_generator_comb (
         flit_out_valid = 0;
         flit_out = 0;
         update_node_id_counter = 0;
-        if (sys_flit_valid) begin
-            case (routing_state)
-                packet_types::INIT: begin
-                    // do nothing
-                end
-                packet_types::I_GENERATE_PARENT_REQUEST: begin
-                    // generate parent request
-                    flit_out_valid = 1;
-                    update_temporal_id = 1;
-                    flit_out.header.src_id = temporal_id;
-                    flit_out.header.dst_id = types::BROADCAST_ID;
-                    flit_out.header.flittype = types::SYSTEM;
-                    flit_out.payload.system.header = system_types::S_PARENT_REQUEST;
-                    flit_out.payload.system.payload.parent_request.is_init = 1;
+        update_temporal_id = 0;
+        next_routing_state_valid = 0;
+        next_routing_state = system_types::FATAL_ERROR;
+        case (routing_state)
+            system_types::I_GENERATE_PARENT_REQUEST: begin
+                // generate parent request
+                flit_out_valid = 1;
+                update_temporal_id = 1;
+                flit_out.header.src_id = temporal_id;
+                flit_out.header.dst_id = types::BROADCAST_ID;
+                flit_out.header.flittype = types::SYSTEM;
+                flit_out.payload.system.header = system_types::S_PARENT_REQUEST;
+                flit_out.payload.system.payload.parent_request.is_init = 1;
 
-                    next_routing_state_valid = 1;
-                    next_routing_state = packet_types::I_WAIT_PARENT_ACK;
-                end
-                packet_types::I_WAIT_PARENT_ACK: begin
-                    // do nothing
-                end
-                packet_types::I_GENERATE_JOIN_REQUEST: begin
-                    // generate join request
-                    flit_out_valid = 1;
-                    flit_out.header.src_id = temporal_id;
-                    flit_out.header.dst_id = parent_id;
-                    flit_out.header.flittype = types::SYSTEM;
-                    flit_out.payload.system.header = system_types::S_JOIN_REQUEST;
+                next_routing_state_valid = 1;
+                next_routing_state = system_types::I_WAIT_PARENT_ACK;
+            end
+            system_types::I_GENERATE_JOIN_REQUEST: begin
+                // generate join request
+                flit_out_valid = 1;
+                flit_out.header.src_id = temporal_id;
+                flit_out.header.dst_id = parent_id;
+                flit_out.header.flittype = types::SYSTEM;
+                flit_out.payload.system.header = system_types::S_JOIN_REQUEST;
 
-                    flit_out.payload.system.payload.join_request.is_init = 1;
-                    flit_out.payload.system.payload.join_request.parent_id = parent_id;
-                    flit_out.payload.system.payload.join_request.child_id = temporal_id;
+                flit_out.payload.system.payload.join_request.is_init = 1;
+                flit_out.payload.system.payload.join_request.parent_id = parent_id;
+                flit_out.payload.system.payload.join_request.child_id = temporal_id;
 
-                    next_routing_state_valid = 1;
-                    next_routing_state = packet_types::I_WAIT_JOIN_ACK;
-                end
-                packet_types::I_WAIT_JOIN_ACK: begin
-                    // do nothing
-                end
+                next_routing_state_valid = 1;
+                next_routing_state = system_types::I_WAIT_JOIN_ACK;
+            end
+            system_types::S_GENERATE_PARENT_REQUEST: begin
+                flit_out_valid = 1;
+                flit_out.header.src_id = this_node_id;
+                flit_out.header.dst_id = types::BROADCAST_ID;
+                flit_out.header.flittype = types::SYSTEM;
+                flit_out.payload.system.header = system_types::S_PARENT_REQUEST;
 
-                packet_types::S_GENERATE_PARENT_REQUEST: begin
-                    flit_out_valid = 1;
-                    flit_out.header.src_id = this_node_id;
-                    flit_out.header.dst_id = types::BROADCAST_ID;
-                    flit_out.header.flittype = types::SYSTEM;
-                    flit_out.payload.system.header = system_types::S_PARENT_REQUEST;
+                flit_out.payload.system.payload.parent_request.is_init = 0;
 
-                    flit_out.payload.system.payload.parent_request.is_init = 0;
+                next_routing_state_valid = 1;
+                next_routing_state = system_types::S_WAIT_PARENT_ACK;
+            end
+            system_types::S_GENERATE_JOIN_REQUEST: begin
+                flit_out_valid = 1;
+                flit_out.header.src_id = this_node_id;
+                flit_out.header.dst_id = global_destination_id;
+                flit_out.header.flittype = types::SYSTEM;
+                flit_out.payload.system.header = system_types::S_JOIN_REQUEST;
 
-                    next_routing_state_valid = 1;
-                    next_routing_state = packet_types::S_WAIT_PARENT_ACK;
-                end
-                packet_types::S_WAIT_PARENT_ACK: begin
-                    // do nothing
-                end
-                packet_types::S_GENERATE_JOIN_REQUEST: begin
-                    flit_out_valid = 1;
-                    flit_out.header.src_id = this_node_id;
-                    flit_out.header.dst_id = global_destination_id;
-                    flit_out.header.flittype = types::SYSTEM;
-                    flit_out.payload.system.header = system_types::S_JOIN_REQUEST;
+                flit_out.payload.system.payload.join_request.is_init = 0;
+                flit_out.payload.system.payload.join_request.parent_id = parent_id;
+                flit_out.payload.system.payload.join_request.child_id = this_node_id;
 
-                    flit_out.payload.system.payload.join_request.is_init = 0;
-                    flit_out.payload.system.payload.join_request.parent_id = parent_id;
-                    flit_out.payload.system.payload.join_request.child_id = this_node_id;
-
-                    next_routing_state_valid = 1;
-                    next_routing_state = packet_types::S_WAIT_JOIN_ACK;
-                end
-                packet_types::S_WAIT_JOIN_ACK: begin
-                    // do nothing
-                end
-
-                packet_types::NORMAL: begin
-                    // this node is joined in the network.
+                next_routing_state_valid = 1;
+                next_routing_state = system_types::S_WAIT_JOIN_ACK;
+            end
+            system_types::NORMAL: begin
+                // this node is joined in the network.
+                if (sys_flit_valid) begin
                     case (system_header)
                         system_types::S_PARENT_REQUEST: begin
                             flit_out_valid = 1;
@@ -162,7 +148,7 @@ module system_flit_generator_comb (
                         system_types::S_SEARCH_FUNCTION: begin
                             // TODO:
                         end
-                        system_types::S_SEARCH_ACK: begin
+                        system_types::S_SEARCH_FUNCTION_ACK: begin
                             // TODO:
                         end
                         system_types::S_DEBUG: begin
@@ -171,21 +157,21 @@ module system_flit_generator_comb (
                         default: begin
                         end
                     endcase
+                end else if (is_heartbeat_request) begin
+                        // generate heartbeat
+                        flit_out_valid = 1;
+                        flit_out.header.src_id = this_node_id;
+                        flit_out.header.dst_id = parent_id;
+                        flit_out.header.flittype = types::SYSTEM;
+                        flit_out.payload.system.header = system_types::S_HEARTBEAT;
                 end
-                packet_types::FATAL_ERROR: begin
-                    // nothing to do
-                end
-                default: begin
-                    // nothing to do
-                end
-            endcase
-        end else if (is_heartbeat_request) begin
-            // generate heartbeat
-            flit_out_valid = 1;
-            flit_out.header.src_id = this_node_id;
-            flit_out.header.dst_id = parent_id;
-            flit_out.header.flittype = types::SYSTEM;
-            flit_out.payload.system.header = system_types::S_HEARTBEAT;
-        end
+            end
+            system_types::FATAL_ERROR: begin
+                // nothing to do
+            end
+            default: begin
+                // nothing to do
+            end
+        endcase
     end
 endmodule

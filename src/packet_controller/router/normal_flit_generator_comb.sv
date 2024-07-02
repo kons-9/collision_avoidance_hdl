@@ -7,12 +7,13 @@ module normal_flit_generator_comb #(
     input logic nocclk,
     input logic rst_n,
 
-    input packet_types::routing_state_t routing_state,  // TODO
+    input system_types::routing_state_t routing_state,  // TODO
     input types::flit_t flit,
     input logic flit_valid,
     input types::node_id_t next_destination,
     input logic next_destination_valid,
     input types::node_id_t this_node_id,
+    input types::node_id_t parent_id,
     input logic is_destination_self,
 
     output logic flit_out_valid,

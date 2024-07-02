@@ -15,7 +15,7 @@ module stage30 #(
 
     // system flit generator
     input logic in_is_system_flit,
-    input packet_types::routing_state_t in_routing_state,
+    input system_types::routing_state_t in_routing_state,
     input types::node_id_t in_global_destination_id,
     input types::node_id_t in_temporal_id,
     output logic out_update_temporal_id,
@@ -31,7 +31,7 @@ module stage30 #(
     output logic out_update_node_id_counter,  // only for root
 
     output logic out_next_routing_state_valid,
-    output packet_types::routing_state_t out_next_routing_state,
+    output system_types::routing_state_t out_next_routing_state,
 
     output logic out_sys_flit_out_valid,
     output types::flit_t out_sys_flit_out,
@@ -75,6 +75,7 @@ module stage30 #(
         .next_destination(in_next_destination),
         .next_destination_valid(in_next_destination_valid),
         .this_node_id(in_this_node_id),
+        .parent_id(in_parent_id),
         .is_destination_self(in_is_destination_self),
 
         .flit_out_valid(out_normal_flit_out_valid),

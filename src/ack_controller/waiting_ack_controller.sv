@@ -112,89 +112,80 @@ module waiting_ack_controller #(
         resend_complete = poped_ack_flit_index_valid & poped_waiting_ack_flit_ready;
     end
 
-    // resend
-    always_ff @(posedge nocclk) begin
-        if (!rst_n) begin
-            foreach (ack_buffer[i]) begin
-                ack_buffer[i].resending  <= 0;
-                ack_buffer[i].resend_num <= 0;
-            end
-        end else begin
-            foreach (ack_buffer[i]) begin
-                if (ack_buffer[i].is_valid) begin
-                    if (ack_buffer[i].resending) begin
-                        if (resend_complete) begin
-                            // when flit is poped, reset resending flag
-                            ack_buffer[i].resending  <= 0;
-                            ack_buffer[i].resend_num <= ack_buffer[i].resend_num + 1;
+
+
+    generate
+        for (genvar i = 0; i < ACK_BUFFER_NUM_ENTRIES; i++) begin : ACK_BUFFER_GENERATE
+            // resend
+            always_ff @(posedge nocclk) begin
+                if (!rst_n) begin
+                    ack_buffer[i].resending  <= 0;
+                    ack_buffer[i].resend_num <= 0;
+                end else begin
+                    if (ack_buffer[i].is_valid) begin
+                        if (ack_buffer[i].resending) begin
+                            if (resend_complete) begin
+                                // when flit is poped, reset resending flag
+                                ack_buffer[i].resending  <= 0;
+                                ack_buffer[i].resend_num <= ack_buffer[i].resend_num + 1;
+                            end
+                        end else if (ack_buffer[i].timer == MAX_TIMEOUT && ack_buffer[i].resend_num < MAX_RESEND_NUM) begin
+                            // while flit is not poped, set resending flag
+                            ack_buffer[i].resending <= 1;
                         end
-                    end else if (ack_buffer[i].timer == MAX_TIMEOUT && ack_buffer[i].resend_num < MAX_RESEND_NUM) begin
-                        // while flit is not poped, set resending flag
-                        ack_buffer[i].resending <= 1;
                     end
                 end
             end
-        end
-    end
-
-    // timer
-    always_ff @(posedge nocclk) begin
-        if (!rst_n) begin
-            foreach (ack_buffer[i]) begin
-                ack_buffer[i].timer <= 0;
-            end
-        end else begin
-            for (int i = 0; i < ACK_BUFFER_NUM_ENTRIES; i++) begin
-                if (ack_buffer[i].is_valid) begin
-                    if (ack_buffer[i].resending) begin
-                        // resenging flag is set when timer reaches TIMEOUT and resend_num is less than MAX_RESEND_NUM
-                        // nothing to do
-                    end else if (ack_buffer[i].timer < MAX_TIMEOUT) begin
-                        ack_buffer[i].timer <= ack_buffer[i].timer + 1;
-                    end else if (resend_flit_valid && i == resend_index) begin
-                        // MAX_TIMEOUT && resend_num < MAX_RESEND_NUM
-                        // if multiple flits are ready to resend, only the first flit is selected
+            // timer
+            always_ff @(posedge nocclk) begin
+                if (!rst_n) begin
+                    ack_buffer[i].timer <= 0;
+                end else begin
+                    if (ack_buffer[i].is_valid) begin
+                        if (ack_buffer[i].resending) begin
+                            // resenging flag is set when timer reaches TIMEOUT and resend_num is less than MAX_RESEND_NUM
+                            // nothing to do
+                        end else if (ack_buffer[i].timer < MAX_TIMEOUT) begin
+                            ack_buffer[i].timer <= ack_buffer[i].timer + 1;
+                        end else if (resend_flit_valid && i == resend_index) begin
+                            // MAX_TIMEOUT && resend_num < MAX_RESEND_NUM
+                            // if multiple flits are ready to resend, only the first flit is selected
+                            ack_buffer[i].timer <= 0;
+                        end
+                    end else begin
                         ack_buffer[i].timer <= 0;
                     end
-                end else begin
-                    ack_buffer[i].timer <= 0;
                 end
             end
-        end
-    end
-
-    // valid
-    always_comb begin
-        foreach (ack_buffer[i]) begin
-            // is_valid is just alias of free_index_bitmap
-            ack_buffer[i].is_valid = !free_index_bitmap[i];
-        end
-    end
-    always_ff @(posedge nocclk) begin
-        if (!rst_n) begin
-            free_index_bitmap <= '1;  // all free
-        end else begin
-            for (int i = 0; i < ACK_BUFFER_NUM_ENTRIES; i++) begin
-                if (ack_buffer[i].is_valid) begin
-                    if (waiting_ack_index_valid && i == waiting_ack_index && waiting_ack_flit_valid) begin
-                        // ack is received
-                        free_index_bitmap[i] <= 1;
-                    end else if (ack_buffer[i].timer == MAX_TIMEOUT && ack_buffer[i].resend_num == MAX_RESEND_NUM) begin
-                        // TODO: error handling
-                        // maybe, delete this flit node from routing table
-                        free_index_bitmap[i] <= 1;
-                    end
-                end else if (free_index_valid && free_index == i) begin
-                    if (interdevice_tx_valid && interdevice_tx_ready) begin
-                        if (!interdevice_tx_flit.header.is_ack) begin
-                            // if this flit is not made in this module
-                            free_index_bitmap[i] <= 0;
+            // valid
+            always_comb begin
+                ack_buffer[i].is_valid = !free_index_bitmap[i];
+            end
+            always_ff @(posedge nocclk) begin
+                if (!rst_n) begin
+                    free_index_bitmap[i] <= 1;  // all free
+                end else begin
+                    if (ack_buffer[i].is_valid) begin
+                        if (waiting_ack_index_valid && i == waiting_ack_index && waiting_ack_flit_valid) begin
+                            // ack is received
+                            free_index_bitmap[i] <= 1;
+                        end else if (ack_buffer[i].timer == MAX_TIMEOUT && ack_buffer[i].resend_num == MAX_RESEND_NUM) begin
+                            // TODO: error handling
+                            // maybe, delete this flit node from routing table
+                            free_index_bitmap[i] <= 1;
+                        end
+                    end else if (free_index_valid && free_index == i) begin
+                        if (interdevice_tx_valid && interdevice_tx_ready) begin
+                            if (!interdevice_tx_flit.header.is_ack) begin
+                                // if this flit is not made in this module
+                                free_index_bitmap[i] <= 0;
+                            end
                         end
                     end
                 end
             end
         end
-    end
+    endgenerate
 
     // insert tx flit to ack buffer if tx flit is not ack flit
     always_ff @(posedge nocclk) begin

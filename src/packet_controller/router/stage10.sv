@@ -4,13 +4,12 @@
 
 module stage10 #(
     parameter int MAX_HEARTBEAT_REQUEST_TIMER = 100,
-    parameter int MAX_INTERNAL_TIMER = 1000,
     parameter logic IS_ROOT = 0
 ) (
     input logic nocclk,
     input logic rst_n,
 
-    input packet_types::routing_state_t in_routing_state,  // TODO
+    input system_types::routing_state_t in_routing_state,  // TODO
     input logic in_stage1_stall,  // TODO
     output logic stage1_ready,
 
@@ -50,12 +49,12 @@ module stage10 #(
     output logic out_is_raw_global_destination_used_to_update_routing_table,
 
     output logic out_update_next_state,
-    output packet_types::routing_state_t out_next_routing_state
+    output system_types::routing_state_t out_next_routing_state
 );
     // priority: system flit > heartbeat request(it generate system flit in
     // 3rd stage) > head flit
 
-    tyeps::node_id_t head_global_destination;
+    types::node_id_t head_global_destination;
     types::node_id_t system_global_destination;
     logic heartbeat_stall;
 
@@ -77,7 +76,6 @@ module stage10 #(
     );
 
     system_flit_decoder_comb #(
-        .MAX_INTERNAL_TIMER(MAX_INTERNAL_TIMER),
         .IS_ROOT(IS_ROOT)
     ) system_flit_decoder_comb_inst (
         .nocclk(nocclk),
@@ -108,7 +106,7 @@ module stage10 #(
     );
 
     heartbeat_requester #(
-        .MAX_HEARTBEAT_REQUEST_TIMER(MAX_HEARTBEAT_REQUEST_TIMER),
+        .MAX_HEARTBEAT_REQUEST_TIMER(MAX_HEARTBEAT_REQUEST_TIMER)
     ) heartbeat_requester_inst (
         .nocclk(nocclk),
         .rst_n (rst_n),
