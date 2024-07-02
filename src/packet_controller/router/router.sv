@@ -47,12 +47,18 @@ module router #(
             end
         end
     end
+    random_id_generator #() random_id_generator0 (
+        .nocclk(nocclk),
+        .rst_n(rst_n),
+        .random_id(g_next_temporal_id)
+    );
     logic g_is_root;
     logic g_incoming_flit_valid;
     types::node_id_t g_incoming_flit_node_id;
     types::node_id_t g_this_node_id;
     packet_types::routing_state_t g_routing_state;
     packet_types::routing_table_t g_routing_table;
+
     always_comb begin
         g_is_root = IS_ROOT;
         g_incoming_flit_node_id = incoming_flit_node_id;
@@ -65,7 +71,7 @@ module router #(
     end
 
     always_comb begin
-        transfered_flit_ready = stage1_ready;
+        transfered_flit_ready = stage1_ready & !stage1_stall;
         this_node_id = g_this_node_id;
     end
 
@@ -227,7 +233,7 @@ module router #(
     logic stage3_valid;
     logic stage4_ready;
     always_comb begin
-        stage3_ready = stage4_ready & !stage3_stall & !r_invalid_id_valid;
+        stage3_ready = stage4_ready & !stage3_stall;
         stage3_valid = stage2_valid;
     end
 
@@ -307,6 +313,7 @@ module router #(
         .in_routing_state(g_routing_state),
         .in_global_destination_id(stage3_global_destination),
         .in_temporal_id(g_temporal_id),
+        .out_update_temporal_id(g_update_temporal_id),
         .in_is_heartbeat_request(stage3_is_heartbeat_request),
         .in_is_root(g_is_root),
         .in_is_init(stage3_is_init),
@@ -375,7 +382,7 @@ module router #(
 
     always_comb begin
         stage5_ready = !stage5_stall;
-        stage5_valid = stage4_valid;
+        stage5_valid = stage4_valid & !stage5_stall;
     end
 
     // forward
@@ -397,10 +404,14 @@ module router #(
         forwarded_flit_valid = 0;
         noc_to_cpu_pushed_flit = stage5_flit_out;
         forwarded_flit = stage5_flit_out;
-        if (stage5_is_destination_self) begin
-            noc_to_cpu_pushed_flit_valid = stage5_flit_valid;
-        end else begin
-            forwarded_flit_valid = stage5_flit_valid;
+        if (stage5_valid) begin
+            if (stage5_is_destination_self) begin
+                noc_to_cpu_pushed_flit_valid = stage5_flit_valid;
+                stage5_ready = noc_to_cpu_pushed_flit_ready;
+            end else begin
+                forwarded_flit_valid = stage5_flit_valid;
+                stage5_ready = forwarded_flit_ready;
+            end
         end
     end
 

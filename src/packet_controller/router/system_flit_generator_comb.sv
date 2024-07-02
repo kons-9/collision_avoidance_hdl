@@ -9,6 +9,7 @@ module system_flit_generator_comb (
     input types::node_id_t next_destination,  // culculated by routing table using global_destination
     input logic next_destination_valid,
     input types::node_id_t temporal_id,
+    output logic update_temporal_id,
     input types::node_id_t parent_id,
     input types::node_id_t this_node_id,
 
@@ -40,6 +41,7 @@ module system_flit_generator_comb (
                 packet_types::I_GENERATE_PARENT_REQUEST: begin
                     // generate parent request
                     flit_out_valid = 1;
+                    update_temporal_id = 1;
                     flit_out.header.src_id = temporal_id;
                     flit_out.header.dst_id = types::BROADCAST_ID;
                     flit_out.header.flittype = types::SYSTEM;

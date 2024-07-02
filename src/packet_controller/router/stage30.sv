@@ -18,6 +18,7 @@ module stage30 #(
     input packet_types::routing_state_t in_routing_state,
     input types::node_id_t in_global_destination_id,
     input types::node_id_t in_temporal_id,
+    output logic out_update_temporal_id,
 
     input logic in_is_heartbeat_request,
     input logic in_is_root,
@@ -48,6 +49,7 @@ module stage30 #(
         .next_destination(in_next_destination),
         .next_destination_valid(in_next_destination_valid),
         .temporal_id(in_temporal_id),
+        .update_temporal_id(out_update_temporal_id),
         .parent_id(in_parent_id),
         .this_node_id(in_this_node_id),
         .is_heartbeat_request(in_is_heartbeat_request),
