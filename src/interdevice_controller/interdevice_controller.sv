@@ -29,7 +29,7 @@ module interdevice_controller (
     output types::flit_t flit_tx_valid
 `endif
 );
-    logic is_destination_this_node = interdevice_rx_flit.header.dst_id === this_node_id;
+    logic is_destination_this_node = interdevice_rx_flit.header.dst_id === this_node_id && interdevice_rx_flit.header.dst_id !== types::BROADCAST_ID;
     logic is_rx_flit_checksum_valid;
     // rx flitのチェックサムを計算する
     calculate_checksum_comb check_checksum1 (

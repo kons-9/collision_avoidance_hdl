@@ -1,5 +1,13 @@
 `include "types.svh"
-module packet_controller (
+module packet_controller #(
+    parameter logic IS_ROOT = 0,
+    parameter int RANDOM_SEED = 0,
+    parameter int MAX_HEARTBEAT_REQUEST_TIMER = 100,
+    parameter int MAX_EXPIRE_TIME = 500,
+    parameter int MAX_INTERNAL_SYSTEM_TIMER = 1000,
+    parameter int MAX_NUM_OF_NEIGHBOR = 8,
+    parameter int MAX_NUM_OF_NODE = 2 ** $bits(types::node_id_t)
+) (
     input logic nocclk,
     input logic rst_n,
 
@@ -87,12 +95,20 @@ module packet_controller (
         .is_flit_from_cpu(is_flit_from_cpu)
     );
 
-    router router (
+    router #(
+        .IS_ROOT(IS_ROOT),
+        .RANDOM_SEED(RANDOM_SEED),
+        .MAX_HEARTBEAT_REQUEST_TIMER(MAX_HEARTBEAT_REQUEST_TIMER),
+        .MAX_EXPIRE_TIMER(MAX_EXPIRE_TIMER),
+        .MAX_INTERNAL_SYSTEM_TIMER(MAX_INTERNAL_SYSTEM_TIMER),
+        .MAX_NUM_OF_NEIGHBORS(MAX_NUM_OF_NEIGHBORS),
+        .MAX_NUM_OF_NODES(MAX_NUM_OF_NODES)
+    ) router_inst (
         .nocclk(nocclk),
         .rst_n (rst_n),
 
         .incoming_flit_node_id(incoming_flit_node_id),
-        .incoming_flit_valid(incoming_flit_valid),
+        .incoming_flit_valid  (incoming_flit_valid),
 
         .transfered_flit(transfered_flit),
         .transfered_flit_valid(transfered_flit_valid),

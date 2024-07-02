@@ -3,9 +3,10 @@
 
 module router #(
     parameter logic IS_ROOT = 0,  // TODO: use ifdef?
+    parameter int RANDOM_SEED = 0,
     parameter int MAX_HEARTBEAT_REQUEST_TIMER = 100,
     parameter int MAX_EXPIRE_TIME = 500,
-    parameter int MAX_INTERNAL_TIMER = 1000,
+    parameter int MAX_INTERNAL_SYSTEM_TIMER = 1000,
     parameter int MAX_NUM_OF_NEIGHBOR = 8,
     parameter int MAX_NUM_OF_NODE = 2 ** $bits(types::node_id_t)
 ) (
@@ -50,7 +51,9 @@ module router #(
             end
         end
     end
-    random_id_generator #() random_id_generator0 (
+    random_id_generator #(
+        .RANDOM_SEED(RANDOM_SEED)
+    ) random_id_generator0 (
         .nocclk(nocclk),
         .rst_n(rst_n),
         .random_id(g_next_temporal_id)
@@ -527,7 +530,7 @@ module router #(
         endcase
     end
 
-    logic [$clog2(MAX_INTERNAL_TIMER):0] _system_timer;  // used in system_flit_decoder_comb
+    logic [$clog2(MAX_INTERNAL_SYSTEM_TIMER):0] _system_timer;  // used in system_flit_decoder_comb
     logic _system_timer_rst;  // used in system_flit_generator_comb
     // update routing state
     always_ff @(posedge nocclk) begin
@@ -550,14 +553,14 @@ module router #(
                 system_types::I_WAIT_PARENT_ACK, system_types::I_WAIT_JOIN_ACK: begin
                     if (stage1_update_next_state) begin
                         g_routing_state <= stage1_next_routing_state;
-                    end else if (_system_timer == MAX_INTERNAL_TIMER) begin
+                    end else if (_system_timer == MAX_INTERNAL_SYSTEM_TIMER) begin
                         g_routing_state <= system_types::I_GENERATE_PARENT_REQUEST;
                     end
                 end
                 system_types::S_WAIT_PARENT_ACK, system_types::S_WAIT_JOIN_ACK: begin
                     if (stage1_update_next_state) begin
                         g_routing_state <= stage1_next_routing_state;
-                    end else if (_system_timer == MAX_INTERNAL_TIMER) begin
+                    end else if (_system_timer == MAX_INTERNAL_SYSTEM_TIMER) begin
                         g_routing_state <= system_types::S_GENERATE_PARENT_REQUEST;
                     end
                 end

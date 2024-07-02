@@ -1,7 +1,10 @@
 `include "types.svh"
 import types::flit_t;
 
-module noc (
+module noc #(
+    parameter int RANDOM_SEED = 0,
+    parameter logic IS_ROOT = 0
+) (
     // uartのクロックを作成するためのクロック(gclk)
     input logic cpuclk,
     // nocとの通信を行うためのクロック(sclk)
@@ -180,7 +183,10 @@ module noc (
     logic forwarded_flit_valid;
     types::flit_t forwarded_flit;
 
-    packet_controller packet_controller0 (
+    packet_controller #(
+        .IS_ROOT(IS_ROOT),
+        .RANDOM_SEED(RANDOM_SEED)
+    ) packet_controller0 (
         .nocclk(nocclk),
         .rst_n(rst_n),
         .next_flit(interdevice_rx_flit),
