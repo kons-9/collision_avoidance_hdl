@@ -22,6 +22,26 @@ package packet_types;
         logic parent_valid;
         types::node_id_t parent_node_id;
     } routing_table_t;
+
+    typedef enum {
+        INIT,
+
+        // for initializtion
+        I_GENERATE_PARENT_REQUEST,
+        I_WAIT_PARENT_ACK,
+        I_GENERATE_JOIN_REQUEST,
+        I_WAIT_JOIN_ACK,
+
+        // for separation
+        S_GENERATE_PARENT_REQUEST,
+        S_WAIT_PARENT_ACK,
+        S_GENERATE_JOIN_REQUEST,
+        S_WAIT_JOIN_ACK,
+
+        NORMAL,
+
+        FATAL_ERROR
+    } routing_state_t;
 endpackage
 
 `endif
