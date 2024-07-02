@@ -4,7 +4,7 @@
 
 import types::*;
 
-module tb_router;
+module tb_random_id_generator;
 
     timeunit 10ps; timeprecision 10ps;
 
@@ -41,9 +41,9 @@ module tb_router;
     endtask
 
     initial begin
-        `TEST_START("tb_router.log")
-        $dumpfile("tb_router.vcd");
-        $dumpvars(0, tb_router);
+        `TEST_START("tb_random_id_generator.log")
+        $dumpfile("tb_random_id_generator.vcd");
+        $dumpvars(0, tb_random_id_generator);
         wait_1clk();
         rst_n = 0;
         wait_1clk();

@@ -22,6 +22,7 @@ package packet_types;
         logic parent_valid;
         types::node_id_t parent_node_id;
     } routing_table_t;
+
 endpackage
 
 `endif

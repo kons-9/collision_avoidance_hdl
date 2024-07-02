@@ -3,6 +3,9 @@ module packet_controller (
     input logic nocclk,
     input logic rst_n,
 
+    input types::node_id_t incoming_flit_node_id,
+    input logic incoming_flit_valid,
+
     input types::flit_t next_flit,
     input logic next_flit_valid,
     output logic next_flit_ready,
@@ -88,11 +91,15 @@ module packet_controller (
         .nocclk(nocclk),
         .rst_n (rst_n),
 
+        .incoming_flit_node_id(incoming_flit_node_id),
+        .incoming_flit_valid(incoming_flit_valid),
+
         .transfered_flit(transfered_flit),
         .transfered_flit_valid(transfered_flit_valid),
         .transfered_flit_ready(transfered_flit_ready),
+
         .transfered_head_flit(transfered_head_flit),
-        .is_flit_from_cpu(is_flit_from_cpu),
+        .is_from_cpu(is_flit_from_cpu),
 
         .noc_to_cpu_pushed_flit_ready(noc_to_cpu_pushed_flit_ready),
         .noc_to_cpu_pushed_flit(noc_to_cpu_pushed_flit),
